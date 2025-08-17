@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { OrganizationProvider } from './contexts/OrganizationContext';
+
 import Layout from './components/Layout';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
@@ -14,7 +14,7 @@ import ScoringConfigPage from './components/ScoringConfigPage';
 import OnboardingWizard from './components/OnboardingWizard';
 import NoOrganization from './components/NoOrganization';
 
-function App() {
+export default function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,13 +23,7 @@ function App() {
       setSession(session);
       setLoading(false);
     });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => subscription.unsubscribe();
   }, []);
 
@@ -41,29 +35,30 @@ function App() {
     );
   }
 
-  if (!session) {
-    return <LoginPage />;
-  }
-
   return (
-    <OrganizationProvider>
-      <Router>
+    <Router>
+      {session ? (
+        <OrganizationProvider>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="leads" element={<LeadsPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="chatbots" element={<ChatbotBuilder />} />
+              <Route path="scoring" element={<ScoringConfigPage />} />
+              <Route path="onboarding" element={<OnboardingWizard />} />
+              <Route path="admin" element={<AdminDashboard />} />
+              <Route path="no-organization" element={<NoOrganization />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </OrganizationProvider>
+      ) : (
+        // Unauthenticated routes stay inside Router too
         <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="leads" element={<LeadsPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-            <Route path="chatbots" element={<ChatbotBuilder />} />
-            <Route path="scoring" element={<ScoringConfigPage />} />
-            <Route path="onboarding" element={<OnboardingWizard />} />
-            <Route path="admin" element={<AdminDashboard />} />
-            <Route path="no-organization" element={<NoOrganization />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
+          <Route path="/*" element={<LoginPage />} />
         </Routes>
-      </Router>
-    </OrganizationProvider>
+      )}
+    </Router>
   );
 }
-
-export default App;
