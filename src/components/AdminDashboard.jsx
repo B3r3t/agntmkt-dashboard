@@ -244,28 +244,67 @@ export default function AdminDashboard() {
       setSaving(true);
 
       try {
-        // Create organization
-        const { data: org, error: orgError } = await supabase
-          .from('organizations')
-          .insert([formData])
-          .select()
-          .single();
+        const { data: org, error: txError } = await supabase.transaction(async (tx) => {
+          // Create organization
+          const { data: orgData, error: orgError } = await tx
+            .from('organizations')
+            .insert([formData])
+            .select()
+            .single();
 
-        if (orgError) throw orgError;
+          if (orgError) throw orgError;
 
-        // Initialize default features
-        const defaultFeatures = [
-          { organization_id: org.id, feature_name: 'lead_scoring', is_enabled: true },
-          { organization_id: org.id, feature_name: 'chatbots', is_enabled: true },
-          { organization_id: org.id, feature_name: 'document_processing', is_enabled: true },
-          { organization_id: org.id, feature_name: 'custom_branding', is_enabled: true }
-        ];
+          // Default branding
+          const { error: brandingError } = await tx
+            .from('client_branding')
+            .insert({
+              organization_id: orgData.id,
+              primary_color: '#3B82F6',
+              secondary_color: '#10B981',
+              accent_color: '#F59E0B',
+              logo_url: null
+            });
+          if (brandingError) throw brandingError;
 
-        const { error: featuresError } = await supabase
-          .from('client_features')
-          .insert(defaultFeatures);
+          // Initialize default features
+          const defaultFeatures = [
+            { feature_name: 'lead_scoring', is_enabled: true },
+            { feature_name: 'chatbots', is_enabled: true },
+            { feature_name: 'document_processing', is_enabled: true },
+            { feature_name: 'custom_branding', is_enabled: true }
+          ].map(f => ({ ...f, organization_id: orgData.id }));
 
-        if (featuresError) throw featuresError;
+          const { error: featuresError } = await tx
+            .from('client_features')
+            .insert(defaultFeatures);
+          if (featuresError) throw featuresError;
+
+          // Default scoring configuration
+          const { error: scoringError } = await tx
+            .from('scoring_config')
+            .insert({
+              organization_id: orgData.id,
+              weight_job_title: 25,
+              weight_company_size: 25,
+              weight_industry_match: 30
+            });
+          if (scoringError) throw scoringError;
+
+          // Invitation for contact email
+          const { error: inviteError } = await tx
+            .from('invitations')
+            .insert({
+              organization_id: orgData.id,
+              email: formData.contact_email,
+              role: 'owner',
+              status: 'pending'
+            });
+          if (inviteError) throw inviteError;
+
+          return orgData;
+        });
+
+        if (txError) throw txError;
 
         // Refresh data and close modal
         await fetchOrganizations();
