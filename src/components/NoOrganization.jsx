@@ -18,7 +18,7 @@ export default function NoOrganization() {
           </p>
           <div className="mt-6">
             <a
-              href="mailto:support@yourcompany.com"
+              href="mailto:support@agntmkt.ai"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
               Contact Support
