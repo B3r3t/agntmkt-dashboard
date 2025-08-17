@@ -54,18 +54,28 @@ export default function AnalyticsPage() {
           .select('score')
           .eq('organization_id', organization.id),
         
-        // Today's new leads
+        // Today's new leads - get count properly
         supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('organization_id', organization.id)
           .gte('created_at', new Date().toISOString().split('T')[0]),
         
-        // Total conversations
+        // Total conversations - first get chatbots, then conversations
         supabase
-          .from('chatbot_conversations')
-          .select('*, chatbot!inner(organization_id)')
-          .eq('chatbot.organization_id', organization.id),
+          .from('chatbots')
+          .select('id')
+          .eq('organization_id', organization.id)
+          .then(async ({ data: chatbots }) => {
+            if (chatbots && chatbots.length > 0) {
+              const chatbotIds = chatbots.map(c => c.id);
+              return await supabase
+                .from('chatbot_conversations')
+                .select('*')
+                .in('chatbot_id', chatbotIds);
+            }
+            return { data: [] };
+          }),
         
         // Daily metrics from analytics_daily
         supabase
@@ -92,7 +102,7 @@ export default function AnalyticsPage() {
         totalConversations: conversations?.length || 0,
         captureRate: captureRate,
         avgLeadScore: Math.round(avgScoreValue),
-        newLeadsToday: todayLeads?.count || 0
+        newLeadsToday: todayLeads || 0  // todayLeads IS the count from { count: todayLeads }
       });
 
       // Process daily metrics for chart
