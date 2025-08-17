@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { 
-  Users, 
-  Settings, 
-  Eye, 
-  Edit3, 
-  Trash2, 
-  Plus, 
-  Search, 
+import {
+  Users,
+  Settings,
+  Eye,
+  Edit3,
+  Trash2,
+  Plus,
+  Search,
   Filter,
   MoreVertical,
   Shield,
@@ -19,11 +19,9 @@ import {
   TrendingUp,
   FileText,
   Zap,
-  LogIn,
-  AlertCircle,
-  CheckCircle,
-  X
+  LogIn
 } from 'lucide-react';
+import StatusMessage from './StatusMessage';
 
 export default function AdminDashboard() {
   const [organizations, setOrganizations] = useState([]);
@@ -32,6 +30,14 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrgs, setSelectedOrgs] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [status, setStatus] = useState({ type: '', message: '' });
+
+  useEffect(() => {
+    if (status.message) {
+      const timer = setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
 
   useEffect(() => {
     fetchOrganizations();
@@ -57,31 +63,27 @@ export default function AdminDashboard() {
       // Get user counts for each organization
       const orgsWithCounts = await Promise.all(
         (orgsData || []).map(async (org) => {
-          // Get user count
-          const { count: userCount } = await supabase
-            .from('user_organizations')
-            .select('*', { count: 'exact' })
-            .eq('organization_id', org.id);
-
-          // Get leads count
-          const { count: leadsCount } = await supabase
-            .from('leads')
-            .select('*', { count: 'exact' })
-            .eq('organization_id', org.id);
-
-          // Get chatbots count
-          const { count: chatbotsCount } = await supabase
-            .from('chatbots')
-            .select('*', { count: 'exact' })
-            .eq('organization_id', org.id);
-
-          // Get last activity (latest lead or conversation)
-          const { data: lastActivity } = await supabase
-            .from('leads')
-            .select('created_at')
-            .eq('organization_id', org.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
+          // Fetch counts and last activity in parallel
+          const [
+            { count: userCount },
+            { count: leadsCount, data: lastActivityData },
+            { count: chatbotsCount },
+          ] = await Promise.all([
+            supabase
+              .from('user_organizations')
+              .select('*', { count: 'exact' })
+              .eq('organization_id', org.id),
+            supabase
+              .from('leads')
+              .select('created_at', { count: 'exact' })
+              .eq('organization_id', org.id)
+              .order('created_at', { ascending: false })
+              .limit(1),
+            supabase
+              .from('chatbots')
+              .select('*', { count: 'exact' })
+              .eq('organization_id', org.id),
+          ]);
 
           // Process features into an object
           const features = {};
@@ -94,7 +96,7 @@ export default function AdminDashboard() {
             user_count: userCount || 0,
             leads_count: leadsCount || 0,
             chatbots_count: chatbotsCount || 0,
-            last_activity: lastActivity?.[0]?.created_at || org.created_at,
+            last_activity: lastActivityData?.[0]?.created_at || org.created_at,
             features: {
               lead_scoring: features.lead_scoring ?? true,
               chatbots: features.chatbots ?? true,
@@ -129,7 +131,7 @@ export default function AdminDashboard() {
 
   const handleBulkAction = async (action) => {
     console.log(`Bulk ${action} for organizations:`, selectedOrgs);
-    
+
     try {
       if (action === 'suspend') {
         // Update organizations status to suspended
@@ -140,12 +142,14 @@ export default function AdminDashboard() {
         
         if (error) throw error;
       }
-      
+
       // Refresh data and clear selection
       await fetchOrganizations();
       setSelectedOrgs([]);
+      setStatus({ type: 'success', message: `Bulk ${action} completed successfully.` });
     } catch (error) {
       console.error(`Error performing bulk ${action}:`, error);
+      setStatus({ type: 'error', message: `Error performing bulk ${action}.` });
     }
   };
 
@@ -240,36 +244,67 @@ export default function AdminDashboard() {
       setSaving(true);
 
       try {
-        // Create organization
         const { data: org, error: orgError } = await supabase
           .from('organizations')
           .insert([formData])
           .select()
           .single();
-
         if (orgError) throw orgError;
+          // Step 2: Create default branding
+          const { error: brandingError } = await supabase
+            .from('client_branding')
+            .insert({
+              organization_id: org.id,
+              primary_color: '#3B82F6',
+              secondary_color: '#10B981', 
+              accent_color: '#F59E0B',
+              logo_url: null
+            });
+          if (brandingError) throw brandingError;
+          // Initialize default features
+          const defaultFeatures = [
+            { feature_name: 'lead_scoring', is_enabled: true },
+            { feature_name: 'chatbots', is_enabled: true },
+            { feature_name: 'document_processing', is_enabled: true },
+            { feature_name: 'custom_branding', is_enabled: true }
+          ].map(f => ({ ...f, organization_id: org.id }));
 
-        // Initialize default features
-        const defaultFeatures = [
-          { organization_id: org.id, feature_name: 'lead_scoring', is_enabled: true },
-          { organization_id: org.id, feature_name: 'chatbots', is_enabled: true },
-          { organization_id: org.id, feature_name: 'document_processing', is_enabled: true },
-          { organization_id: org.id, feature_name: 'custom_branding', is_enabled: true }
-        ];
+          const { error: featuresError } = await supabase
+            .from('client_features')
+            .insert(defaultFeatures);
+          if (featuresError) throw featuresError;
 
-        const { error: featuresError } = await supabase
-          .from('client_features')
-          .insert(defaultFeatures);
-
-        if (featuresError) throw featuresError;
-
+          // Default scoring configuration
+          const { error: scoringError } = await supabase
+            .from('scoring_configs')
+            .insert({
+              organization_id: org.id,
+              name: 'Default Scoring',
+              description: 'Default lead scoring criteria',
+              criteria: {
+                job_title: { weight: 25 },
+                company_size: { weight: 25 },
+                industry_match: { weight: 30 },
+                engagement: { weight: 20 }
+              },
+              weights: {
+                job_title: 25,
+                company_size: 25,
+                industry_match: 30,
+                engagement: 20
+              },
+              is_active: true
+            });
+          if (scoringError) throw scoringError;
+        
         // Refresh data and close modal
         await fetchOrganizations();
         setShowAddModal(false);
         setFormData({ name: '', industry: '', contact_email: '', contact_name: '' });
+        setStatus({ type: 'success', message: 'Client created successfully.' });
       } catch (error) {
         console.error('Error creating organization:', error);
-        alert('Error creating client. Please try again.');
+        setStatus({ type: 'error', message: 'Error creating client. Please try again.' });
       } finally {
         setSaving(false);
       }
@@ -376,6 +411,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <StatusMessage type={status.type} message={status.message} />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
