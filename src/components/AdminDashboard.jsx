@@ -43,76 +43,143 @@ export default function AdminDashboard() {
     fetchOrganizations();
   }, []);
 
-  const fetchOrganizations = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch organizations with additional data
-      const { data: orgsData, error: orgsError } = await supabase
-        .from('organizations')
-        .select(`
-          *,
-          user_organizations!inner(user_id),
-          client_features(feature_name, is_enabled),
-          client_branding(primary_color, secondary_color, accent_color, logo_url)
-        `)
-        .order('created_at', { ascending: false });
+// Replace the fetchOrganizations function in your AdminDashboard.jsx with this:
 
-      if (orgsError) throw orgsError;
+const fetchOrganizations = async () => {
+  try {
+    setLoading(true);
+    
+    console.log('🔍 Fetching organizations as admin...');
+    
+    // Test admin status first
+    const { data: adminTest } = await supabase.rpc('is_admin');
+    console.log('✅ Admin status:', adminTest);
+    
+    if (!adminTest) {
+      setStatus({ 
+        type: 'error', 
+        message: 'Access denied. Admin privileges required.' 
+      });
+      setLoading(false);
+      return;
+    }
 
-      // Get user counts for each organization
-      const orgsWithCounts = await Promise.all(
-        (orgsData || []).map(async (org) => {
-          // Fetch counts and last activity in parallel
-          const [
-            { count: userCount },
-            { count: leadsCount, data: lastActivityData },
-            { count: chatbotsCount },
-          ] = await Promise.all([
+    // Fetch ALL organizations - RLS will handle access control
+    const { data: orgsData, error: orgsError } = await supabase
+      .from('organizations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    console.log('📊 Organizations query:', { orgsData, orgsError });
+
+    if (orgsError) {
+      throw orgsError;
+    }
+
+    if (!orgsData || orgsData.length === 0) {
+      setStatus({ 
+        type: 'warning', 
+        message: 'No organizations found.' 
+      });
+      setOrganizations([]);
+      return;
+    }
+
+    console.log(`🏢 Found ${orgsData.length} organizations:`, orgsData.map(o => o.name));
+
+    // Get additional data for each organization
+    const orgsWithCounts = await Promise.all(
+      orgsData.map(async (org) => {
+        try {
+          console.log(`📈 Getting data for ${org.name}...`);
+
+          // Get counts in parallel
+          const [userCountResult, leadsCountResult, chatbotsCountResult] = await Promise.all([
             supabase
               .from('user_organizations')
               .select('*', { count: 'exact' })
               .eq('organization_id', org.id),
             supabase
               .from('leads')
-              .select('created_at', { count: 'exact' })
-              .eq('organization_id', org.id)
-              .order('created_at', { ascending: false })
-              .limit(1),
+              .select('*', { count: 'exact' })
+              .eq('organization_id', org.id),
             supabase
               .from('chatbots')
               .select('*', { count: 'exact' })
-              .eq('organization_id', org.id),
+              .eq('organization_id', org.id)
           ]);
 
-          // Process features into an object
-          const features = {};
-          (org.client_features || []).forEach(feature => {
-            features[feature.feature_name] = feature.is_enabled;
-          });
-
-          return {
+          const orgWithData = {
             ...org,
-            user_count: userCount || 0,
-            leads_count: leadsCount || 0,
-            chatbots_count: chatbotsCount || 0,
-            last_activity: lastActivityData?.[0]?.created_at || org.created_at,
+            user_count: userCountResult.count || 0,
+            leads_count: leadsCountResult.count || 0,
+            chatbots_count: chatbotsCountResult.count || 0,
+            last_activity: org.updated_at || org.created_at,
             features: {
-              lead_scoring: features.lead_scoring ?? true,
-              chatbots: features.chatbots ?? true,
-              document_processing: features.document_processing ?? true,
-              custom_branding: features.custom_branding ?? true,
-              ...features
+              lead_scoring: true,
+              chatbots: true,
+              document_processing: true,
+              custom_branding: true
             },
-            branding: org.client_branding?.[0] || {
+            branding: {
               primary_color: '#3d3b3a',
               secondary_color: '#737373',
               accent_color: '#ff7f30'
             },
             status: org.status || 'active'
           };
-        })
-      );
+
+          console.log(`✅ ${org.name} data:`, {
+            users: orgWithData.user_count,
+            leads: orgWithData.leads_count,
+            chatbots: orgWithData.chatbots_count
+          });
+
+          return orgWithData;
+
+        } catch (error) {
+          console.error(`❌ Error fetching data for ${org.name}:`, error);
+          // Return org with minimal data if error
+          return {
+            ...org,
+            user_count: 0,
+            leads_count: 0,
+            chatbots_count: 0,
+            last_activity: org.created_at,
+            features: {
+              lead_scoring: true,
+              chatbots: true,
+              document_processing: true,
+              custom_branding: true
+            },
+            branding: {
+              primary_color: '#3d3b3a',
+              secondary_color: '#737373',
+              accent_color: '#ff7f30'
+            },
+            status: org.status || 'active'
+          };
+        }
+      })
+    );
+
+    console.log('🎯 Final organizations data:', orgsWithCounts);
+    setOrganizations(orgsWithCounts);
+    setStatus({ 
+      type: 'success', 
+      message: `Successfully loaded ${orgsWithCounts.length} organizations.` 
+    });
+    
+  } catch (error) {
+    console.error('💥 Error fetching organizations:', error);
+    setStatus({ 
+      type: 'error', 
+      message: `Error: ${error.message}` 
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
       setOrganizations(orgsWithCounts);
     } catch (error) {
