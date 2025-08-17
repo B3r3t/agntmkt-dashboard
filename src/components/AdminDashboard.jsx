@@ -19,7 +19,10 @@ import {
   TrendingUp,
   FileText,
   Zap,
-  LogIn
+  LogIn,
+  AlertCircle,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 import StatusMessage from './StatusMessage';
 
@@ -34,7 +37,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (status.message) {
-      const timer = setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+      const timer = setTimeout(() => setStatus({ type: '', message: '' }), 5000);
       return () => clearTimeout(timer);
     }
   }, [status]);
@@ -43,147 +46,138 @@ export default function AdminDashboard() {
     fetchOrganizations();
   }, []);
 
-// Replace the fetchOrganizations function in your AdminDashboard.jsx with this:
+  // UPDATED: Fixed fetchOrganizations function
+  const fetchOrganizations = async () => {
+    try {
+      setLoading(true);
+      
+      console.log('🔍 Fetching organizations as admin...');
+      
+      // Test admin status first
+      const { data: adminTest } = await supabase.rpc('is_admin');
+      console.log('✅ Admin status:', adminTest);
+      
+      if (!adminTest) {
+        setStatus({ 
+          type: 'error', 
+          message: 'Access denied. Admin privileges required.' 
+        });
+        setLoading(false);
+        return;
+      }
 
-const fetchOrganizations = async () => {
-  try {
-    setLoading(true);
-    
-    console.log('🔍 Fetching organizations as admin...');
-    
-    // Test admin status first
-    const { data: adminTest } = await supabase.rpc('is_admin');
-    console.log('✅ Admin status:', adminTest);
-    
-    if (!adminTest) {
+      // Fetch ALL organizations - RLS will handle access control
+      const { data: orgsData, error: orgsError } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      console.log('📊 Organizations query:', { orgsData, orgsError });
+
+      if (orgsError) {
+        throw orgsError;
+      }
+
+      if (!orgsData || orgsData.length === 0) {
+        setStatus({ 
+          type: 'warning', 
+          message: 'No organizations found.' 
+        });
+        setOrganizations([]);
+        return;
+      }
+
+      console.log(`🏢 Found ${orgsData.length} organizations:`, orgsData.map(o => o.name));
+
+      // Get additional data for each organization
+      const orgsWithCounts = await Promise.all(
+        orgsData.map(async (org) => {
+          try {
+            console.log(`📈 Getting data for ${org.name}...`);
+
+            // Get counts in parallel
+            const [userCountResult, leadsCountResult, chatbotsCountResult] = await Promise.all([
+              supabase
+                .from('user_organizations')
+                .select('*', { count: 'exact' })
+                .eq('organization_id', org.id),
+              supabase
+                .from('leads')
+                .select('*', { count: 'exact' })
+                .eq('organization_id', org.id),
+              supabase
+                .from('chatbots')
+                .select('*', { count: 'exact' })
+                .eq('organization_id', org.id)
+            ]);
+
+            const orgWithData = {
+              ...org,
+              user_count: userCountResult.count || 0,
+              leads_count: leadsCountResult.count || 0,
+              chatbots_count: chatbotsCountResult.count || 0,
+              last_activity: org.updated_at || org.created_at,
+              features: {
+                lead_scoring: true,
+                chatbots: true,
+                document_processing: true,
+                custom_branding: true
+              },
+              branding: {
+                primary_color: '#3d3b3a',
+                secondary_color: '#737373',
+                accent_color: '#ff7f30'
+              },
+              status: org.status || 'active'
+            };
+
+            console.log(`✅ ${org.name} data:`, {
+              users: orgWithData.user_count,
+              leads: orgWithData.leads_count,
+              chatbots: orgWithData.chatbots_count
+            });
+
+            return orgWithData;
+
+          } catch (error) {
+            console.error(`❌ Error fetching data for ${org.name}:`, error);
+            // Return org with minimal data if error
+            return {
+              ...org,
+              user_count: 0,
+              leads_count: 0,
+              chatbots_count: 0,
+              last_activity: org.created_at,
+              features: {
+                lead_scoring: true,
+                chatbots: true,
+                document_processing: true,
+                custom_branding: true
+              },
+              branding: {
+                primary_color: '#3d3b3a',
+                secondary_color: '#737373',
+                accent_color: '#ff7f30'
+              },
+              status: org.status || 'active'
+            };
+          }
+        })
+      );
+
+      console.log('🎯 Final organizations data:', orgsWithCounts);
+      setOrganizations(orgsWithCounts);
+      setStatus({ 
+        type: 'success', 
+        message: `Successfully loaded ${orgsWithCounts.length} organizations.` 
+      });
+      
+    } catch (error) {
+      console.error('💥 Error fetching organizations:', error);
       setStatus({ 
         type: 'error', 
-        message: 'Access denied. Admin privileges required.' 
+        message: `Error: ${error.message}` 
       });
-      setLoading(false);
-      return;
-    }
-
-    // Fetch ALL organizations - RLS will handle access control
-    const { data: orgsData, error: orgsError } = await supabase
-      .from('organizations')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    console.log('📊 Organizations query:', { orgsData, orgsError });
-
-    if (orgsError) {
-      throw orgsError;
-    }
-
-    if (!orgsData || orgsData.length === 0) {
-      setStatus({ 
-        type: 'warning', 
-        message: 'No organizations found.' 
-      });
-      setOrganizations([]);
-      return;
-    }
-
-    console.log(`🏢 Found ${orgsData.length} organizations:`, orgsData.map(o => o.name));
-
-    // Get additional data for each organization
-    const orgsWithCounts = await Promise.all(
-      orgsData.map(async (org) => {
-        try {
-          console.log(`📈 Getting data for ${org.name}...`);
-
-          // Get counts in parallel
-          const [userCountResult, leadsCountResult, chatbotsCountResult] = await Promise.all([
-            supabase
-              .from('user_organizations')
-              .select('*', { count: 'exact' })
-              .eq('organization_id', org.id),
-            supabase
-              .from('leads')
-              .select('*', { count: 'exact' })
-              .eq('organization_id', org.id),
-            supabase
-              .from('chatbots')
-              .select('*', { count: 'exact' })
-              .eq('organization_id', org.id)
-          ]);
-
-          const orgWithData = {
-            ...org,
-            user_count: userCountResult.count || 0,
-            leads_count: leadsCountResult.count || 0,
-            chatbots_count: chatbotsCountResult.count || 0,
-            last_activity: org.updated_at || org.created_at,
-            features: {
-              lead_scoring: true,
-              chatbots: true,
-              document_processing: true,
-              custom_branding: true
-            },
-            branding: {
-              primary_color: '#3d3b3a',
-              secondary_color: '#737373',
-              accent_color: '#ff7f30'
-            },
-            status: org.status || 'active'
-          };
-
-          console.log(`✅ ${org.name} data:`, {
-            users: orgWithData.user_count,
-            leads: orgWithData.leads_count,
-            chatbots: orgWithData.chatbots_count
-          });
-
-          return orgWithData;
-
-        } catch (error) {
-          console.error(`❌ Error fetching data for ${org.name}:`, error);
-          // Return org with minimal data if error
-          return {
-            ...org,
-            user_count: 0,
-            leads_count: 0,
-            chatbots_count: 0,
-            last_activity: org.created_at,
-            features: {
-              lead_scoring: true,
-              chatbots: true,
-              document_processing: true,
-              custom_branding: true
-            },
-            branding: {
-              primary_color: '#3d3b3a',
-              secondary_color: '#737373',
-              accent_color: '#ff7f30'
-            },
-            status: org.status || 'active'
-          };
-        }
-      })
-    );
-
-    console.log('🎯 Final organizations data:', orgsWithCounts);
-    setOrganizations(orgsWithCounts);
-    setStatus({ 
-      type: 'success', 
-      message: `Successfully loaded ${orgsWithCounts.length} organizations.` 
-    });
-    
-  } catch (error) {
-    console.error('💥 Error fetching organizations:', error);
-    setStatus({ 
-      type: 'error', 
-      message: `Error: ${error.message}` 
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
-      setOrganizations(orgsWithCounts);
-    } catch (error) {
-      console.error('Error fetching organizations:', error);
     } finally {
       setLoading(false);
     }
@@ -256,6 +250,7 @@ const fetchOrganizations = async () => {
       await fetchOrganizations();
     } catch (error) {
       console.error('Error toggling feature:', error);
+      setStatus({ type: 'error', message: 'Error updating feature.' });
     }
   };
 
@@ -297,12 +292,14 @@ const fetchOrganizations = async () => {
     );
   };
 
+  // UPDATED: Enhanced AddClientModal with auto-membership
   const AddClientModal = () => {
     const [formData, setFormData] = useState({
       name: '',
       industry: '',
       contact_email: '',
-      contact_name: ''
+      contact_name: '',
+      website: ''
     });
     const [saving, setSaving] = useState(false);
 
@@ -311,67 +308,96 @@ const fetchOrganizations = async () => {
       setSaving(true);
 
       try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No authenticated user');
+
+        // Step 1: Create the organization
         const { data: org, error: orgError } = await supabase
           .from('organizations')
           .insert([formData])
           .select()
           .single();
         if (orgError) throw orgError;
-          // Step 2: Create default branding
-          const { error: brandingError } = await supabase
-            .from('client_branding')
-            .insert({
-              organization_id: org.id,
-              primary_color: '#3B82F6',
-              secondary_color: '#10B981', 
-              accent_color: '#F59E0B',
-              logo_url: null
-            });
-          if (brandingError) throw brandingError;
-          // Initialize default features
-          const defaultFeatures = [
-            { feature_name: 'lead_scoring', is_enabled: true },
-            { feature_name: 'chatbots', is_enabled: true },
-            { feature_name: 'document_processing', is_enabled: true },
-            { feature_name: 'custom_branding', is_enabled: true }
-          ].map(f => ({ ...f, organization_id: org.id }));
 
-          const { error: featuresError } = await supabase
-            .from('client_features')
-            .insert(defaultFeatures);
-          if (featuresError) throw featuresError;
+        console.log('✅ Created organization:', org.name);
 
-          // Default scoring configuration
-          const { error: scoringError } = await supabase
-            .from('scoring_configs')
-            .insert({
-              organization_id: org.id,
-              name: 'Default Scoring',
-              description: 'Default lead scoring criteria',
-              criteria: {
-                job_title: { weight: 25 },
-                company_size: { weight: 25 },
-                industry_match: { weight: 30 },
-                engagement: { weight: 20 }
-              },
-              weights: {
-                job_title: 25,
-                company_size: 25,
-                industry_match: 30,
-                engagement: 20
-              },
-              is_active: true
-            });
-          if (scoringError) throw scoringError;
+        // Step 2: Add yourself as admin of the new organization
+        const { error: userOrgError } = await supabase
+          .from('user_organizations')
+          .insert({
+            user_id: user.id,
+            organization_id: org.id,
+            role: 'admin'  // You're admin of this new org too
+          });
+        if (userOrgError) console.warn('Warning adding user to org:', userOrgError);
+
+        // Step 3: Create default branding
+        const { error: brandingError } = await supabase
+          .from('client_branding')
+          .insert({
+            organization_id: org.id,
+            primary_color: '#3B82F6',
+            secondary_color: '#10B981', 
+            accent_color: '#F59E0B',
+            logo_url: null
+          });
+        if (brandingError) console.warn('Warning creating branding:', brandingError);
+
+        // Step 4: Initialize default features
+        const defaultFeatures = [
+          { feature_name: 'lead_scoring', is_enabled: true },
+          { feature_name: 'chatbots', is_enabled: true },
+          { feature_name: 'document_processing', is_enabled: true },
+          { feature_name: 'custom_branding', is_enabled: true }
+        ].map(f => ({ ...f, organization_id: org.id }));
+
+        const { error: featuresError } = await supabase
+          .from('client_features')
+          .insert(defaultFeatures);
+        if (featuresError) console.warn('Warning creating features:', featuresError);
+
+        // Step 5: Default scoring configuration
+        const { error: scoringError } = await supabase
+          .from('scoring_configs')
+          .insert({
+            organization_id: org.id,
+            name: 'Default Scoring',
+            description: 'Default lead scoring criteria',
+            criteria: {
+              job_title: { weight: 25 },
+              company_size: { weight: 25 },
+              industry_match: { weight: 30 },
+              engagement: { weight: 20 }
+            },
+            weights: {
+              job_title: 25,
+              company_size: 25,
+              industry_match: 30,
+              engagement: 20
+            },
+            is_active: true,
+            created_by: user.id
+          });
+        if (scoringError) console.warn('Warning creating scoring config:', scoringError);
         
         // Refresh data and close modal
         await fetchOrganizations();
         setShowAddModal(false);
-        setFormData({ name: '', industry: '', contact_email: '', contact_name: '' });
-        setStatus({ type: 'success', message: 'Client created successfully.' });
+        setFormData({ name: '', industry: '', contact_email: '', contact_name: '', website: '' });
+        setStatus({ 
+          type: 'success', 
+          message: `Client "${org.name}" created successfully!` 
+        });
+
+        console.log('🎉 New organization fully set up:', org.name);
+        
       } catch (error) {
         console.error('Error creating organization:', error);
-        setStatus({ type: 'error', message: 'Error creating client. Please try again.' });
+        setStatus({ 
+          type: 'error', 
+          message: `Error creating client: ${error.message}` 
+        });
       } finally {
         setSaving(false);
       }
@@ -404,6 +430,16 @@ const fetchOrganizations = async () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, industry: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
                   placeholder="e.g., Quick Service Restaurant"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Website</label>
+                <input
+                  type="url"
+                  value={formData.website}
+                  onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                  placeholder="https://example.com"
                 />
               </div>
               <div>
