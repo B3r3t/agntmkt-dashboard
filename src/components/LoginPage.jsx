@@ -1,35 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import StatusMessage from './StatusMessage';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [status, setStatus] = useState({ type: '', message: '' });
+
+  useEffect(() => {
+    if (status.message) {
+      const timer = setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
 
   const logoUrl = "https://ibbkdeptefqazanswvqj.supabase.co/storage/v1/object/public/public-assets/mkt.png";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setStatus({ type: '', message: '' });
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        alert('Check your email for confirmation!');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+          const { error } = await supabase.auth.signUp({ email, password });
+          if (error) throw error;
+          setStatus({ type: 'success', message: 'Check your email for confirmation!' });
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+        }
+      } catch (error) {
+        setStatus({ type: 'error', message: error.message });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -49,11 +57,7 @@ export default function LoginPage() {
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
+            {status.message && <StatusMessage type={status.type} message={status.message} />}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <input
