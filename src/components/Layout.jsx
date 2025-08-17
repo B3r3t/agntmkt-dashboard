@@ -6,8 +6,11 @@ import { Menu, X } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
-  const { organization, branding, isAdmin } = useOrganization();
+  const { organization, branding, userRole } = useOrganization();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Only true admins (AgentMarket staff) can access admin dashboard
+  const isSystemAdmin = userRole === 'admin';
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -113,8 +116,8 @@ export default function Layout() {
                   Scoring
                 </NavLink>
                 
-                {/* Admin Link - Only show for admins */}
-                {isAdmin && (
+                {/* Admin Link - Only show for system admins (AgentMarket staff) */}
+                {isSystemAdmin && (
                   <NavLink 
                     to="/admin"
                     className={({ isActive }) =>
@@ -217,8 +220,8 @@ export default function Layout() {
                 Scoring
               </NavLink>
               
-              {/* Admin Link - Only show for admins */}
-              {isAdmin && (
+              {/* Admin Link - Only show for system admins (AgentMarket staff) */}
+              {isSystemAdmin && (
                 <NavLink
                   to="/admin"
                   className={({ isActive }) =>
