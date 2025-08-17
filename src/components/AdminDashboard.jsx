@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { 
-  Users, 
-  Settings, 
-  Eye, 
-  Edit3, 
-  Trash2, 
-  Plus, 
-  Search, 
+import {
+  Users,
+  Settings,
+  Eye,
+  Edit3,
+  Trash2,
+  Plus,
+  Search,
   Filter,
   MoreVertical,
   Shield,
@@ -19,11 +19,9 @@ import {
   TrendingUp,
   FileText,
   Zap,
-  LogIn,
-  AlertCircle,
-  CheckCircle,
-  X
+  LogIn
 } from 'lucide-react';
+import StatusMessage from './StatusMessage';
 
 export default function AdminDashboard() {
   const [organizations, setOrganizations] = useState([]);
@@ -32,6 +30,14 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrgs, setSelectedOrgs] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [status, setStatus] = useState({ type: '', message: '' });
+
+  useEffect(() => {
+    if (status.message) {
+      const timer = setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
 
   useEffect(() => {
     fetchOrganizations();
@@ -129,7 +135,7 @@ export default function AdminDashboard() {
 
   const handleBulkAction = async (action) => {
     console.log(`Bulk ${action} for organizations:`, selectedOrgs);
-    
+
     try {
       if (action === 'suspend') {
         // Update organizations status to suspended
@@ -140,12 +146,14 @@ export default function AdminDashboard() {
         
         if (error) throw error;
       }
-      
+
       // Refresh data and clear selection
       await fetchOrganizations();
       setSelectedOrgs([]);
+      setStatus({ type: 'success', message: `Bulk ${action} completed successfully.` });
     } catch (error) {
       console.error(`Error performing bulk ${action}:`, error);
+      setStatus({ type: 'error', message: `Error performing bulk ${action}.` });
     }
   };
 
@@ -267,9 +275,10 @@ export default function AdminDashboard() {
         await fetchOrganizations();
         setShowAddModal(false);
         setFormData({ name: '', industry: '', contact_email: '', contact_name: '' });
+        setStatus({ type: 'success', message: 'Client created successfully.' });
       } catch (error) {
         console.error('Error creating organization:', error);
-        alert('Error creating client. Please try again.');
+        setStatus({ type: 'error', message: 'Error creating client. Please try again.' });
       } finally {
         setSaving(false);
       }
@@ -376,6 +385,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <StatusMessage type={status.type} message={status.message} />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
