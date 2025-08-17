@@ -7,8 +7,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-    // ADD YOUR LOGO URL HERE 👇
+
   const logoUrl = "https://ibbkdeptefqazanswvqj.supabase.co/storage/v1/object/public/public-assets/mkt.png";
 
   const handleSubmit = async (e) => {
@@ -36,6 +35,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
+          {/* Your Logo */}
+          <div className="flex justify-center mb-8">
+            <img 
+              className="h-24 w-auto" 
+              src={logoUrl} 
+              alt="AgentMarket"
+            />
+          </div>
+          
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </h2>
