@@ -6,7 +6,7 @@ import { Menu, X } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
-  const { organization, branding } = useOrganization();
+  const { organization, branding, isAdmin } = useOrganization();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -112,6 +112,20 @@ export default function Layout() {
                 >
                   Scoring
                 </NavLink>
+                
+                {/* Admin Link - Only show for admins */}
+                {isAdmin && (
+                  <NavLink 
+                    to="/admin"
+                    className={({ isActive }) =>
+                      isActive
+                        ? 'border-b-2 border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium'
+                        : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium'
+                    }
+                  >
+                    Admin
+                  </NavLink>
+                )}
               </div>
             </div>
 
@@ -202,6 +216,21 @@ export default function Layout() {
               >
                 Scoring
               </NavLink>
+              
+              {/* Admin Link - Only show for admins */}
+              {isAdmin && (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    isActive
+                      ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 block pl-3 pr-4 py-2 text-base font-medium'
+                      : 'border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 text-base font-medium'
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Admin
+                </NavLink>
+              )}
             </div>
             <div className="pt-4 pb-3 border-t border-gray-200">
               <button
