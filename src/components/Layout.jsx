@@ -7,7 +7,6 @@ import { Menu, X } from 'lucide-react';
 export default function Layout() {
   const navigate = useNavigate();
   const { organization, branding, userRole, isAdmin } = useOrganization();
-  const isSystemAdmin = userRole === 'admin';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Only true admins (AgentMarket staff) can access admin dashboard
