@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 const OrganizationContext = createContext({});
 
@@ -13,9 +14,12 @@ export function useOrganization() {
 
 export function OrganizationProvider({ children }) {
   const [organization, setOrganization] = useState(null);
+  const [branding, setBranding] = useState(null);
+  const [features, setFeatures] = useState({});
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUserOrganization();
@@ -53,38 +57,39 @@ export function OrganizationProvider({ children }) {
       if (orgError || !userOrg) {
         // User might not be assigned to any organization yet
         setError('No organization found. Please contact your administrator.');
+        navigate('/no-organization');
         return;
       }
 
       // Get organization branding
-      const { data: branding } = await supabase
+      const { data: brandingData } = await supabase
         .from('client_branding')
         .select('*')
         .eq('organization_id', userOrg.organization.id)
         .single();
 
       // Get organization features
-      const { data: features } = await supabase
+      const { data: featuresData } = await supabase
         .from('client_features')
         .select('feature_name, is_enabled')
         .eq('organization_id', userOrg.organization.id);
 
       // Process features into an object
       const featuresMap = {};
-      features?.forEach(f => {
+      featuresData?.forEach(f => {
         featuresMap[f.feature_name] = f.is_enabled;
       });
 
       // Set the complete organization context
-      setOrganization({
-        ...userOrg.organization,
-        branding: branding || {
-          primary_color: '#3d3b3a',
-          secondary_color: '#737373',
-          accent_color: '#ff7f30'
-        },
-        features: featuresMap
+      setOrganization(userOrg.organization);
+      setBranding(brandingData || {
+        primary_color: '#3B82F6',
+        secondary_color: '#10B981',
+        accent_color: '#F59E0B',
+        logo_url: null,
+        custom_css: null
       });
+      setFeatures(featuresMap);
       setUserRole(userOrg.role);
 
     } catch (err) {
@@ -95,34 +100,38 @@ export function OrganizationProvider({ children }) {
     }
   };
 
-  // Function to refresh organization data
-  const refreshOrganization = async () => {
-    await fetchUserOrganization();
-  };
-
-  // Check if user has specific permission
-  const hasPermission = (permission) => {
-    const permissions = {
-      owner: ['all'],
-      admin: ['manage_users', 'manage_settings', 'view_all_data'],
-      manager: ['manage_leads', 'view_reports'],
-      user: ['view_own_data']
+  // Helper functions for role-based access
+  const hasRole = (requiredRole) => {
+    const roleHierarchy = {
+      'user': 1,
+      'manager': 2,
+      'admin': 3,
+      'owner': 4
     };
-
-    return permissions[userRole]?.includes('all') || 
-           permissions[userRole]?.includes(permission);
+    
+    const userLevel = roleHierarchy[userRole] || 0;
+    const requiredLevel = roleHierarchy[requiredRole] || 0;
+    
+    return userLevel >= requiredLevel;
   };
 
   const value = {
     organization,
+    branding,
+    features,
     userRole,
     loading,
     error,
-    refreshOrganization,
-    hasPermission,
+    refreshOrganization: fetchUserOrganization,
+    hasRole,
+    // Convenience methods
     isOwner: userRole === 'owner',
     isAdmin: userRole === 'admin' || userRole === 'owner',
-    isManager: userRole === 'manager' || userRole === 'admin' || userRole === 'owner'
+    isManager: userRole === 'manager' || userRole === 'admin' || userRole === 'owner',
+    canManageUsers: userRole === 'admin' || userRole === 'owner',
+    canManageSettings: userRole === 'admin' || userRole === 'owner',
+    canViewAnalytics: true, // All users can view analytics
+    canManageLeads: userRole !== 'user' // Everyone except basic users
   };
 
   return (
