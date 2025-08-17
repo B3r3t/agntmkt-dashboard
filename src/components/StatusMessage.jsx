@@ -1,18 +1,33 @@
 import React from 'react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, X } from 'lucide-react';
 
-export default function StatusMessage({ type = 'success', message }) {
+export default function StatusMessage({ type, message }) {
   if (!message) return null;
-  const isError = type === 'error';
-  const classes = isError
-    ? 'bg-red-50 text-red-800 border-red-200'
-    : 'bg-green-50 text-green-800 border-green-200';
-  const Icon = isError ? AlertCircle : CheckCircle;
+
+  const icons = {
+    success: CheckCircle,
+    error: AlertCircle,
+    warning: AlertCircle,
+  };
+
+  const colors = {
+    success: 'bg-green-50 text-green-800 border-green-200',
+    error: 'bg-red-50 text-red-800 border-red-200',
+    warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+  };
+
+  const Icon = icons[type] || AlertCircle;
 
   return (
-    <div className={`mb-4 flex items-center border ${classes} px-4 py-3 rounded-md`}>
-      <Icon className="h-5 w-5 mr-2" />
-      <span className="text-sm">{message}</span>
+    <div className={`border rounded-md p-4 mb-6 ${colors[type] || colors.error}`}>
+      <div className="flex">
+        <div className="flex-shrink-0">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <div className="ml-3">
+          <p className="text-sm font-medium">{message}</p>
+        </div>
+      </div>
     </div>
   );
 }
