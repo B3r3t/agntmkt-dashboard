@@ -63,31 +63,27 @@ export default function AdminDashboard() {
       // Get user counts for each organization
       const orgsWithCounts = await Promise.all(
         (orgsData || []).map(async (org) => {
-          // Get user count
-          const { count: userCount } = await supabase
-            .from('user_organizations')
-            .select('*', { count: 'exact' })
-            .eq('organization_id', org.id);
-
-          // Get leads count
-          const { count: leadsCount } = await supabase
-            .from('leads')
-            .select('*', { count: 'exact' })
-            .eq('organization_id', org.id);
-
-          // Get chatbots count
-          const { count: chatbotsCount } = await supabase
-            .from('chatbots')
-            .select('*', { count: 'exact' })
-            .eq('organization_id', org.id);
-
-          // Get last activity (latest lead or conversation)
-          const { data: lastActivity } = await supabase
-            .from('leads')
-            .select('created_at')
-            .eq('organization_id', org.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
+          // Fetch counts and last activity in parallel
+          const [
+            { count: userCount },
+            { count: leadsCount, data: lastActivityData },
+            { count: chatbotsCount },
+          ] = await Promise.all([
+            supabase
+              .from('user_organizations')
+              .select('*', { count: 'exact' })
+              .eq('organization_id', org.id),
+            supabase
+              .from('leads')
+              .select('created_at', { count: 'exact' })
+              .eq('organization_id', org.id)
+              .order('created_at', { ascending: false })
+              .limit(1),
+            supabase
+              .from('chatbots')
+              .select('*', { count: 'exact' })
+              .eq('organization_id', org.id),
+          ]);
 
           // Process features into an object
           const features = {};
@@ -100,7 +96,7 @@ export default function AdminDashboard() {
             user_count: userCount || 0,
             leads_count: leadsCount || 0,
             chatbots_count: chatbotsCount || 0,
-            last_activity: lastActivity?.[0]?.created_at || org.created_at,
+            last_activity: lastActivityData?.[0]?.created_at || org.created_at,
             features: {
               lead_scoring: features.lead_scoring ?? true,
               chatbots: features.chatbots ?? true,
