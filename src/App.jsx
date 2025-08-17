@@ -47,7 +47,7 @@ export default function App() {
               <Route path="chatbots" element={<ChatbotBuilder />} />
               <Route path="scoring" element={<ScoringConfigPage />} />
               <Route path="onboarding" element={<OnboardingWizard />} />
-              <Route path="admin" element={<AdminDashboard />} />
+              <Route path="admin" element={userRole === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
               <Route path="no-organization" element={<NoOrganization />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
