@@ -34,7 +34,9 @@ export function OrganizationProvider({ children }) {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
-        throw new Error('No authenticated user');
+        setError('No authenticated user');
+        setLoading(false);
+        return;
       }
 
       // Get user's organization and role
@@ -57,7 +59,11 @@ export function OrganizationProvider({ children }) {
       if (orgError || !userOrg) {
         // User might not be assigned to any organization yet
         setError('No organization found. Please contact your administrator.');
-        navigate('/no-organization');
+        // Use setTimeout to avoid navigation issues during context initialization
+        setTimeout(() => {
+          navigate('/no-organization');
+        }, 100);
+        setLoading(false);
         return;
       }
 
