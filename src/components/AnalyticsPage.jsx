@@ -26,14 +26,22 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
 
+      // First, get chatbot IDs for this organization
+      const { data: chatbots } = await supabase
+        .from('chatbots')
+        .select('id')
+        .eq('organization_id', organization.id);
+      
+      const chatbotIds = chatbots?.map(c => c.id) || [];
+
       // Fetch all metrics for this organization
       const [
-        { count: totalLeads },
-        { count: qualifiedLeads },
-        { data: avgScore },
-        { data: todayLeads },
-        { data: conversations },
-        { data: dailyMetrics }
+        leadsResult,
+        qualifiedResult,
+        avgScoreResult,
+        todayResult,
+        conversationsResult,
+        dailyMetricsResult
       ] = await Promise.all([
         // Total leads
         supabase
@@ -48,11 +56,12 @@ export default function AnalyticsPage() {
           .eq('organization_id', organization.id)
           .eq('status', 'qualified'),
         
-        // Average lead score
+        // Average lead score - get actual lead data for calculation
         supabase
           .from('leads')
           .select('score')
-          .eq('organization_id', organization.id),
+          .eq('organization_id', organization.id)
+          .not('score', 'is', null),
         
         // Today's new leads - get count properly
         supabase
@@ -61,21 +70,13 @@ export default function AnalyticsPage() {
           .eq('organization_id', organization.id)
           .gte('created_at', new Date().toISOString().split('T')[0]),
         
-        // Total conversations - first get chatbots, then conversations
-        supabase
-          .from('chatbots')
-          .select('id')
-          .eq('organization_id', organization.id)
-          .then(async ({ data: chatbots }) => {
-            if (chatbots && chatbots.length > 0) {
-              const chatbotIds = chatbots.map(c => c.id);
-              return await supabase
-                .from('chatbot_conversations')
-                .select('*')
-                .in('chatbot_id', chatbotIds);
-            }
-            return { data: [] };
-          }),
+        // Total conversations - query with chatbot IDs
+        chatbotIds.length > 0
+          ? supabase
+              .from('chatbot_conversations')
+              .select('*', { count: 'exact', head: true })
+              .in('chatbot_id', chatbotIds)
+          : { count: 0 },
         
         // Daily metrics from analytics_daily
         supabase
@@ -86,37 +87,48 @@ export default function AnalyticsPage() {
           .limit(30)
       ]);
 
-      // Calculate average score
-      const avgScoreValue = avgScore?.length > 0
-        ? avgScore.reduce((acc, lead) => acc + (lead.score || 0), 0) / avgScore.length
+      // Extract counts and data
+      const totalLeads = leadsResult.count || 0;
+      const qualifiedLeads = qualifiedResult.count || 0;
+      const todayLeads = todayResult.count || 0;
+      const totalConversations = conversationsResult.count || 0;
+
+      // Calculate average score from actual score data
+      const avgScoreValue = avgScoreResult.data?.length > 0
+        ? avgScoreResult.data.reduce((acc, lead) => acc + (lead.score || 0), 0) / avgScoreResult.data.length
         : 0;
 
-      // Calculate capture rate
-      const captureRate = conversations?.length > 0 && totalLeads > 0
-        ? ((totalLeads / conversations.length) * 100).toFixed(1)
+      // Calculate capture rate (leads captured from conversations)
+      const captureRate = totalConversations > 0 && totalLeads > 0
+        ? ((totalLeads / totalConversations) * 100).toFixed(1)
         : 0;
 
       setMetrics({
-        totalLeads: totalLeads || 0,
-        qualifiedLeads: qualifiedLeads || 0,
-        totalConversations: conversations?.length || 0,
-        captureRate: captureRate,
+        totalLeads,
+        qualifiedLeads,
+        totalConversations,
+        captureRate,
         avgLeadScore: Math.round(avgScoreValue),
-        newLeadsToday: todayLeads || 0  // todayLeads IS the count from { count: todayLeads }
+        newLeadsToday: todayLeads
       });
 
-      // Process daily metrics for chart
-      if (dailyMetrics?.length > 0) {
-        const chartPoints = dailyMetrics.map(metric => ({
+      // Process daily metrics for chart if available
+      if (dailyMetricsResult.data?.length > 0) {
+        const chartPoints = dailyMetricsResult.data.map(metric => ({
           date: new Date(metric.date).toLocaleDateString(),
-          value: metric.metric_value,
-          type: metric.metric_type
+          totalLeads: metric.total_leads || 0,
+          newLeads: metric.new_leads || 0,
+          qualifiedLeads: metric.qualified_leads || 0,
+          conversations: metric.total_conversations || 0
         }));
         setChartData(chartPoints);
       }
 
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      // Log more details for debugging
+      console.error('Organization ID:', organization?.id);
+      console.error('Error details:', error.message);
     } finally {
       setLoading(false);
     }
@@ -175,7 +187,7 @@ export default function AnalyticsPage() {
                     </dt>
                     <dd className="flex items-baseline">
                       <div className="text-2xl font-semibold text-gray-900">
-                        {metrics.totalLeads}
+                        {metrics.totalLeads.toLocaleString()}
                       </div>
                       {metrics.newLeadsToday > 0 && (
                         <span className="ml-2 text-sm text-green-600">
@@ -202,7 +214,7 @@ export default function AnalyticsPage() {
                     </dt>
                     <dd className="flex items-baseline">
                       <div className="text-2xl font-semibold text-gray-900">
-                        {metrics.qualifiedLeads}
+                        {metrics.qualifiedLeads.toLocaleString()}
                       </div>
                       <span className="ml-2 text-sm text-gray-600">
                         {metrics.totalLeads > 0 
@@ -229,7 +241,7 @@ export default function AnalyticsPage() {
                     </dt>
                     <dd className="flex items-baseline">
                       <div className="text-2xl font-semibold text-gray-900">
-                        {metrics.totalConversations}
+                        {metrics.totalConversations.toLocaleString()}
                       </div>
                       <span className="ml-2 text-sm text-gray-600">
                         {metrics.captureRate}% capture
@@ -308,16 +320,40 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Lead Sources</h2>
-            <p className="text-gray-600">
-              Source breakdown will appear here as data accumulates.
-            </p>
+            {chartData.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Recent Performance:</p>
+                {chartData.slice(0, 3).map((data, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{data.date}:</span>
+                    <span className="font-medium">{data.totalLeads} leads</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">
+                Source breakdown will appear here as data accumulates.
+              </p>
+            )}
           </div>
 
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Conversion Trends</h2>
-            <p className="text-gray-600">
-              Trend charts will appear here as data accumulates.
-            </p>
+            {chartData.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Recent Conversions:</p>
+                {chartData.slice(0, 3).map((data, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{data.date}:</span>
+                    <span className="font-medium">{data.qualifiedLeads} qualified</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">
+                Trend charts will appear here as data accumulates.
+              </p>
+            )}
           </div>
         </div>
       </div>
