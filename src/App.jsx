@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
-import { OrganizationProvider } from './contexts/OrganizationContext';
+import { OrganizationProvider, useOrganization } from './contexts/OrganizationContext';
 
 import Layout from './components/Layout';
 import LoginPage from './components/LoginPage';
@@ -13,6 +13,17 @@ import AdminDashboard from './components/AdminDashboard';
 import ScoringConfigPage from './components/ScoringConfigPage';
 import OnboardingWizard from './components/OnboardingWizard';
 import NoOrganization from './components/NoOrganization';
+
+// Protected Admin Route Component
+function ProtectedAdminRoute() {
+  const { userRole } = useOrganization();
+  
+  if (userRole === 'admin') {
+    return <AdminDashboard />;
+  }
+  
+  return <Navigate to="/" replace />;
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -47,7 +58,7 @@ export default function App() {
               <Route path="chatbots" element={<ChatbotBuilder />} />
               <Route path="scoring" element={<ScoringConfigPage />} />
               <Route path="onboarding" element={<OnboardingWizard />} />
-              <Route path="admin" element={userRole === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
+              <Route path="admin" element={<ProtectedAdminRoute />} />
               <Route path="no-organization" element={<NoOrganization />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
