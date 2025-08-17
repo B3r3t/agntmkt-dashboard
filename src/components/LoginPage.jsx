@@ -7,6 +7,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+    // ADD YOUR LOGO URL HERE 👇
+  const logoUrl = "https://ibbkdeptefqazanswvqj.supabase.co/storage/v1/object/public/public-assets/mkt.png";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
