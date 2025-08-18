@@ -112,56 +112,91 @@ export function OrganizationProvider({ children }) {
         setIsImpersonating(false);
         
         // Get user's role and organization
-        const { data: userRoleData } = await supabase
+        const { data: userRoleData, error: roleError } = await supabase
           .from('user_roles')
-          .select(`
-            role,
-            organization:organizations(*)
-          `)
+          .select('role, organization_id')
           .eq('user_id', user.id)
           .single();
 
-        if (!userRoleData || !userRoleData.organization) {
-          setError('No organization found for user');
+        if (roleError || !userRoleData) {
+          console.error('Error fetching user role:', roleError);
+          setError('No role found for user');
           setLoading(false);
           return;
         }
 
         // Set the user's actual role
         setUserRole(userRoleData.role);
-        setOrganization(userRoleData.organization);
-
-        // Get organization branding
-        const { data: brandingData } = await supabase
-          .from('client_branding')
-          .select('*')
-          .eq('organization_id', userRoleData.organization.id)
-          .single();
-
-        // Get organization features
-        const { data: featuresData } = await supabase
-          .from('client_features')
-          .select('feature_name, is_enabled')
-          .eq('organization_id', userRoleData.organization.id);
-
-        // Process features into an object
-        const featuresMap = {};
-        if (featuresData) {
-          featuresData.forEach(f => {
-            featuresMap[f.feature_name] = f.is_enabled;
-          });
-        }
-
-        setBranding(brandingData || {
-          primary_color: '#3B82F6',
-          secondary_color: '#10B981',
-          accent_color: '#F59E0B',
-          logo_url: null,
-          custom_css: null
-        });
-        setFeatures(featuresMap);
+        console.log('User role:', userRoleData.role, 'Org ID:', userRoleData.organization_id);
         
-        console.log('User organization loaded:', userRoleData.organization.name, 'Role:', userRoleData.role);
+        // Now fetch the organization if they have one
+        if (userRoleData.organization_id) {
+          const { data: orgData, error: orgError } = await supabase
+            .from('organizations')
+            .select('*')
+            .eq('id', userRoleData.organization_id)
+            .single();
+          
+          if (orgData) {
+            setOrganization(orgData);
+            
+            // Get branding
+            const { data: brandingData } = await supabase
+              .from('client_branding')
+              .select('*')
+              .eq('organization_id', userRoleData.organization_id)
+              .single();
+
+            // Get features
+            const { data: featuresData } = await supabase
+              .from('client_features')
+              .select('feature_name, is_enabled')
+              .eq('organization_id', userRoleData.organization_id);
+
+            // Process features into an object
+            const featuresMap = {};
+            if (featuresData) {
+              featuresData.forEach(f => {
+                featuresMap[f.feature_name] = f.is_enabled;
+              });
+            }
+
+            setBranding(brandingData || {
+              primary_color: '#3B82F6',
+              secondary_color: '#10B981',
+              accent_color: '#F59E0B',
+              logo_url: null,
+              custom_css: null
+            });
+            setFeatures(featuresMap);
+            
+            console.log('Organization loaded:', orgData.name);
+          }
+        } else {
+          // User has no organization
+          if (userRoleData.role === 'admin') {
+            // Admin without org - this is okay
+            console.log('Admin user without organization');
+            setOrganization(null);
+            setBranding({
+              primary_color: '#3B82F6',
+              secondary_color: '#10B981',
+              accent_color: '#F59E0B',
+              logo_url: null,
+              custom_css: null
+            });
+            setFeatures({
+              lead_scoring: true,
+              chatbots: true,
+              analytics: true
+            });
+          } else {
+            // Non-admin without org - this is an error
+            setError('No organization found for user');
+            setLoading(false);
+            return;
+          }
+        }
       }
 
     } catch (err) {
