@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Users, TrendingUp, MessageSquare, Target, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-  const { organization, loading: orgLoading } = useOrganization();
+  const { organization, loading: orgLoading, userRole, isAdmin } = useOrganization();
+  const navigate = useNavigate();
   const [userName, setUserName] = useState('');
   const [stats, setStats] = useState({
     totalLeads: 0,
@@ -46,12 +47,23 @@ export default function Dashboard() {
   useEffect(() => {
     if (organization?.id) {
       fetchDashboardData();
+    } else if (!orgLoading) {
+      // No organization (admin without org or loading complete)
+      setStats({
+        totalLeads: 0,
+        newToday: 0,
+        activeChats: 0,
+        conversionRate: 0
+      });
+      setRecentLeads([]);
+      setLoading(false);
     }
-  }, [organization]);
+  }, [organization, orgLoading]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching dashboard data for org:', organization.id);
 
       // Fetch all stats in parallel
       const [
@@ -73,7 +85,7 @@ export default function Dashboard() {
           .eq('organization_id', organization.id)
           .gte('created_at', new Date().toISOString().split('T')[0]),
         
-        // Recent 5 leads with details
+        // Recent 5 leads
         supabase
           .from('leads')
           .select('*')
@@ -81,51 +93,58 @@ export default function Dashboard() {
           .order('created_at', { ascending: false })
           .limit(5),
         
-        // Get chatbots for conversation count
+        // Active chatbots
         supabase
           .from('chatbots')
-          .select('id')
+          .select('*')
           .eq('organization_id', organization.id)
+          .eq('is_active', true)
       ]);
 
-      // Get active conversations if chatbots exist
-      let activeChatsCount = 0;
-      if (chatbots && chatbots.length > 0) {
-        const chatbotIds = chatbots.map(c => c.id);
-        const { count } = await supabase
-          .from('chatbot_conversations')
-          .select('*', { count: 'exact', head: true })
-          .in('chatbot_id', chatbotIds)
-          .eq('status', 'active');
-        activeChatsCount = count || 0;
-      }
-
-      // Calculate conversion rate (qualified leads / total leads)
-      const { count: qualifiedCount } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organization.id)
-        .eq('status', 'qualified');
-
-      const conversionRate = totalLeads > 0 
-        ? ((qualifiedCount / totalLeads) * 100).toFixed(1)
-        : 0;
+      // Calculate conversion rate (example: qualified leads / total leads)
+      const conversionRate = totalLeads > 0 ? Math.round((todayLeads / totalLeads) * 100) : 0;
 
       setStats({
         totalLeads: totalLeads || 0,
         newToday: todayLeads || 0,
-        activeChats: activeChatsCount,
+        activeChats: chatbots?.length || 0,
         conversionRate
       });
 
       setRecentLeads(recentLeadsData || []);
-
+      console.log('Dashboard data loaded:', { totalLeads, todayLeads, recentLeads: recentLeadsData?.length });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Special handling for admin users without organization
+  if (!orgLoading && userRole === 'admin' && !organization) {
+    return (
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          <h1 className="text-3xl font-bold text-gray-900">Welcome {userName || 'Admin'}</h1>
+          <p className="mt-2 text-gray-600">System administration dashboard</p>
+          
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h2 className="text-lg font-medium text-blue-900 mb-2">Admin Portal</h2>
+            <p className="text-blue-700 mb-4">
+              As a system administrator, you can manage all client organizations and their settings.
+            </p>
+            <Link
+              to="/admin"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Go to Admin Dashboard
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (orgLoading || loading) {
     return (
@@ -136,25 +155,18 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="py-6">
-        {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome {userName || 'back'}
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Here's your business overview for today
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-0">
+        <h1 className="text-3xl font-bold text-gray-900">Welcome {userName}</h1>
+        <p className="mt-2 text-gray-600">Here's your business overview for today</p>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Users className="h-6 w-6 text-blue-400" />
+                  <Users className="h-6 w-6 text-gray-400" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -162,7 +174,7 @@ export default function Dashboard() {
                       Total Leads
                     </dt>
                     <dd className="text-2xl font-semibold text-gray-900">
-                      {stats.totalLeads.toLocaleString()}
+                      {stats.totalLeads}
                     </dd>
                   </dl>
                 </div>
@@ -182,7 +194,7 @@ export default function Dashboard() {
                       New Today
                     </dt>
                     <dd className="text-2xl font-semibold text-gray-900">
-                      {stats.newToday.toLocaleString()}
+                      {stats.newToday}
                     </dd>
                   </dl>
                 </div>
@@ -194,7 +206,7 @@ export default function Dashboard() {
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <MessageSquare className="h-6 w-6 text-purple-400" />
+                  <MessageSquare className="h-6 w-6 text-blue-400" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -232,7 +244,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Leads Section */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-md">
           <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
             <h2 className="text-lg font-medium text-gray-900">Recent Leads</h2>
             <Link 
@@ -250,7 +262,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
-                        {lead.name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                        {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
                       </p>
                       <p className="text-sm text-gray-500">{lead.email}</p>
                     </div>
@@ -259,13 +271,13 @@ export default function Dashboard() {
                         lead.status === 'qualified' 
                           ? 'bg-green-100 text-green-800'
                           : lead.status === 'contacted'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
                         {lead.status || 'new'}
                       </span>
                       {lead.score && (
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm font-medium text-gray-900">
                           Score: {lead.score}
                         </span>
                       )}
@@ -274,8 +286,8 @@ export default function Dashboard() {
                 </li>
               ))
             ) : (
-              <li className="px-4 py-4 sm:px-6">
-                <p className="text-sm text-gray-500 text-center">No leads yet</p>
+              <li className="px-4 py-8 text-center text-gray-500">
+                No leads yet
               </li>
             )}
           </ul>
