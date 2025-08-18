@@ -1,5 +1,5 @@
-// OrganizationContext.jsx - Fixed with proper data loading and refresh
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// OrganizationContext.jsx - Final fix with proper refresh handling
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -24,25 +24,7 @@ export function OrganizationProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Listen for storage changes (for Return to Admin)
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'refresh_organization') {
-        // Force refresh when returning to admin
-        fetchUserOrganization();
-        localStorage.removeItem('refresh_organization');
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  useEffect(() => {
-    fetchUserOrganization();
-  }, [location.pathname]); // Refresh when path changes
-
-  const fetchUserOrganization = async () => {
+  const fetchUserOrganization = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -60,6 +42,11 @@ export function OrganizationProvider({ children }) {
       const tempOrgId = localStorage.getItem('temp_organization_id');
       const originalUserId = localStorage.getItem('admin_original_user');
       const adminImpersonating = localStorage.getItem('admin_impersonating');
+      
+      // Clear state first if not impersonating
+      if (!tempOrgId || !adminImpersonating) {
+        setIsImpersonating(false);
+      }
       
       // If admin is impersonating, load the impersonated organization
       if (tempOrgId && originalUserId === user.id && adminImpersonating) {
@@ -124,102 +111,57 @@ export function OrganizationProvider({ children }) {
         console.log('Loading normal user organization');
         setIsImpersonating(false);
         
-        // First check if user is a system admin
-        const { data: adminRole } = await supabase
+        // Get user's role and organization
+        const { data: userRoleData } = await supabase
           .from('user_roles')
-          .select('role')
+          .select(`
+            role,
+            organization:organizations(*)
+          `)
           .eq('user_id', user.id)
-          .eq('role', 'admin')
           .single();
 
-        if (adminRole) {
-          // User is a system admin
-          console.log('User is system admin');
-          setUserRole('admin');
-          
-          // Get the admin's organization (AGNTMKT)
-          const { data: adminOrg } = await supabase
-            .from('user_roles')
-            .select(`
-              role,
-              organization:organizations(*)
-            `)
-            .eq('user_id', user.id)
-            .single();
-
-          if (adminOrg?.organization) {
-            setOrganization(adminOrg.organization);
-            
-            // Get admin org branding
-            const { data: brandingData } = await supabase
-              .from('client_branding')
-              .select('*')
-              .eq('organization_id', adminOrg.organization.id)
-              .single();
-
-            setBranding(brandingData || {
-              primary_color: '#3B82F6',
-              secondary_color: '#10B981',
-              accent_color: '#F59E0B',
-              logo_url: null,
-              custom_css: null
-            });
-          }
-          
-          setFeatures({
-            lead_scoring: true,
-            chatbots: true,
-            analytics: true
-          });
-        } else {
-          // Regular user - get their organization
-          const { data: userOrg, error: orgError } = await supabase
-            .from('user_roles')
-            .select(`
-              role,
-              organization:organizations(*)
-            `)
-            .eq('user_id', user.id)
-            .single();
-
-          if (orgError || !userOrg || !userOrg.organization) {
-            setError('No organization found for user');
-            setLoading(false);
-            return;
-          }
-
-          // Get organization branding
-          const { data: brandingData } = await supabase
-            .from('client_branding')
-            .select('*')
-            .eq('organization_id', userOrg.organization.id)
-            .single();
-
-          // Get organization features
-          const { data: featuresData } = await supabase
-            .from('client_features')
-            .select('feature_name, is_enabled')
-            .eq('organization_id', userOrg.organization.id);
-
-          // Process features into an object
-          const featuresMap = {};
-          if (featuresData) {
-            featuresData.forEach(f => {
-              featuresMap[f.feature_name] = f.is_enabled;
-            });
-          }
-
-          setOrganization(userOrg.organization);
-          setBranding(brandingData || {
-            primary_color: '#3B82F6',
-            secondary_color: '#10B981',
-            accent_color: '#F59E0B',
-            logo_url: null,
-            custom_css: null
-          });
-          setFeatures(featuresMap);
-          setUserRole(userOrg.role);
+        if (!userRoleData || !userRoleData.organization) {
+          setError('No organization found for user');
+          setLoading(false);
+          return;
         }
+
+        // Set the user's actual role
+        setUserRole(userRoleData.role);
+        setOrganization(userRoleData.organization);
+
+        // Get organization branding
+        const { data: brandingData } = await supabase
+          .from('client_branding')
+          .select('*')
+          .eq('organization_id', userRoleData.organization.id)
+          .single();
+
+        // Get organization features
+        const { data: featuresData } = await supabase
+          .from('client_features')
+          .select('feature_name, is_enabled')
+          .eq('organization_id', userRoleData.organization.id);
+
+        // Process features into an object
+        const featuresMap = {};
+        if (featuresData) {
+          featuresData.forEach(f => {
+            featuresMap[f.feature_name] = f.is_enabled;
+          });
+        }
+
+        setBranding(brandingData || {
+          primary_color: '#3B82F6',
+          secondary_color: '#10B981',
+          accent_color: '#F59E0B',
+          logo_url: null,
+          custom_css: null
+        });
+        setFeatures(featuresMap);
+        
+        console.log('User organization loaded:', userRoleData.organization.name, 'Role:', userRoleData.role);
       }
 
     } catch (err) {
@@ -228,7 +170,27 @@ export function OrganizationProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchUserOrganization();
+  }, []);
+
+  // Watch for navigation to /admin specifically
+  useEffect(() => {
+    // If we're on /admin and there's no impersonation data, refresh
+    if (location.pathname === '/admin') {
+      const tempOrgId = localStorage.getItem('temp_organization_id');
+      const adminImpersonating = localStorage.getItem('admin_impersonating');
+      
+      if (!tempOrgId && !adminImpersonating && isImpersonating) {
+        // We were impersonating but now the data is cleared
+        console.log('Detected return to admin, refreshing context...');
+        fetchUserOrganization();
+      }
+    }
+  }, [location.pathname, isImpersonating]);
 
   // Helper functions for role-based access
   const hasRole = (requiredRole) => {
