@@ -5,7 +5,7 @@ import { Users, TrendingUp, MessageSquare, Target, ArrowRight } from 'lucide-rea
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-  const { organization, loading: orgLoading, userRole } = useOrganization();
+  const { organization, loading: orgLoading, userRole, isImpersonating } = useOrganization();
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
   const [stats, setStats] = useState({
@@ -120,8 +120,8 @@ export default function Dashboard() {
     }
   };
 
-  // Special handling for admin users without organization
-  if (!orgLoading && userRole === 'admin' && !organization) {
+  // If user is system admin but not viewing as a client
+  if (userRole === 'admin' && !organization && !isImpersonating && !orgLoading) {
     return (
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
@@ -271,23 +271,21 @@ export default function Dashboard() {
                         lead.status === 'qualified' 
                           ? 'bg-green-100 text-green-800'
                           : lead.status === 'contacted'
-                          ? 'bg-yellow-100 text-yellow-800'
+                          ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {lead.status || 'new'}
+                        {lead.status || 'New'}
                       </span>
-                      {lead.score && (
-                        <span className="text-sm font-medium text-gray-900">
-                          Score: {lead.score}
-                        </span>
-                      )}
+                      <span className="text-sm text-gray-500">
+                        Score: {lead.score || 0}
+                      </span>
                     </div>
                   </div>
                 </li>
               ))
             ) : (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No leads yet
+              <li className="px-4 py-12 text-center">
+                <p className="text-gray-500">No leads yet</p>
               </li>
             )}
           </ul>
