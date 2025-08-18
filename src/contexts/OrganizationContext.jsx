@@ -19,6 +19,7 @@ export function OrganizationProvider({ children }) {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isImpersonating, setIsImpersonating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +31,10 @@ export function OrganizationProvider({ children }) {
       setLoading(true);
       setError(null);
 
+      // Check if admin is impersonating
+      const tempOrgId = localStorage.getItem('temp_organization_id');
+      const originalUserId = localStorage.getItem('admin_original_user');
+      
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
@@ -39,64 +44,114 @@ export function OrganizationProvider({ children }) {
         return;
       }
 
-      // Get user's organization and role
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select(`
-          role,
-          organization:organizations!inner(
-            id,
-            name,
-            industry,
-            website,
-            status,
-            created_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .single();
+      // If admin is impersonating, load the impersonated organization
+      if (tempOrgId && originalUserId === user.id) {
+        setIsImpersonating(true);
+        
+        // Get the impersonated organization directly
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', tempOrgId)
+          .single();
 
-      if (orgError || !userOrg) {
-        // User might not be assigned to any organization yet
-        setError('No organization found. Please contact your administrator.');
-        // Use setTimeout to avoid navigation issues during context initialization
-        setTimeout(() => {
-          navigate('/no-organization');
-        }, 100);
-        setLoading(false);
-        return;
+        if (orgError || !orgData) {
+          // Clear impersonation if org not found
+          localStorage.removeItem('temp_organization_id');
+          localStorage.removeItem('admin_impersonating');
+          localStorage.removeItem('impersonated_org_name');
+          setError('Impersonated organization not found');
+          setLoading(false);
+          return;
+        }
+
+        // Get branding for impersonated org
+        const { data: brandingData } = await supabase
+          .from('client_branding')
+          .select('*')
+          .eq('organization_id', tempOrgId)
+          .single();
+
+        // Get features for impersonated org
+        const { data: featuresData } = await supabase
+          .from('client_features')
+          .select('feature_name, is_enabled')
+          .eq('organization_id', tempOrgId);
+
+        // Process features
+        const featuresMap = {};
+        featuresData?.forEach(f => {
+          featuresMap[f.feature_name] = f.is_enabled;
+        });
+
+        setOrganization(orgData);
+        setBranding(brandingData || {
+          primary_color: '#3B82F6',
+          secondary_color: '#10B981',
+          accent_color: '#F59E0B',
+          logo_url: null,
+          custom_css: null
+        });
+        setFeatures(featuresMap);
+        setUserRole('impersonating'); // Special role for impersonation
+        
+      } else {
+        // Normal flow - get user's actual organization
+        const { data: userOrg, error: orgError } = await supabase
+          .from('user_organizations')
+          .select(`
+            role,
+            organization:organizations!inner(
+              id,
+              name,
+              industry,
+              website,
+              status,
+              created_at
+            )
+          `)
+          .eq('user_id', user.id)
+          .single();
+
+        if (orgError || !userOrg) {
+          setError('No organization found. Please contact your administrator.');
+          setTimeout(() => {
+            navigate('/no-organization');
+          }, 100);
+          setLoading(false);
+          return;
+        }
+
+        // Get organization branding
+        const { data: brandingData } = await supabase
+          .from('client_branding')
+          .select('*')
+          .eq('organization_id', userOrg.organization.id)
+          .single();
+
+        // Get organization features
+        const { data: featuresData } = await supabase
+          .from('client_features')
+          .select('feature_name, is_enabled')
+          .eq('organization_id', userOrg.organization.id);
+
+        // Process features into an object
+        const featuresMap = {};
+        featuresData?.forEach(f => {
+          featuresMap[f.feature_name] = f.is_enabled;
+        });
+
+        setOrganization(userOrg.organization);
+        setBranding(brandingData || {
+          primary_color: '#3B82F6',
+          secondary_color: '#10B981',
+          accent_color: '#F59E0B',
+          logo_url: null,
+          custom_css: null
+        });
+        setFeatures(featuresMap);
+        setUserRole(userOrg.role);
       }
-
-      // Get organization branding
-      const { data: brandingData } = await supabase
-        .from('client_branding')
-        .select('*')
-        .eq('organization_id', userOrg.organization.id)
-        .single();
-
-      // Get organization features
-      const { data: featuresData } = await supabase
-        .from('client_features')
-        .select('feature_name, is_enabled')
-        .eq('organization_id', userOrg.organization.id);
-
-      // Process features into an object
-      const featuresMap = {};
-      featuresData?.forEach(f => {
-        featuresMap[f.feature_name] = f.is_enabled;
-      });
-
-      // Set the complete organization context
-      setOrganization(userOrg.organization);
-      setBranding(brandingData || {
-        primary_color: '#3B82F6',
-        secondary_color: '#10B981',
-        accent_color: '#F59E0B',
-        logo_url: null,
-        custom_css: null
-      });
-      setFeatures(featuresMap);
-      setUserRole(userOrg.role);
 
     } catch (err) {
       console.error('Error fetching organization:', err);
@@ -108,6 +163,19 @@ export function OrganizationProvider({ children }) {
 
   // Helper functions for role-based access
   const hasRole = (requiredRole) => {
+    // If impersonating, treat as client admin
+    if (userRole === 'impersonating') {
+      const roleHierarchy = {
+        'user': 1,
+        'manager': 2,
+        'admin': 3,
+        'owner': 4
+      };
+      const requiredLevel = roleHierarchy[requiredRole] || 0;
+      // Impersonation acts as client admin (level 3)
+      return 3 >= requiredLevel;
+    }
+
     const roleHierarchy = {
       'user': 1,
       'manager': 2,
@@ -128,6 +196,7 @@ export function OrganizationProvider({ children }) {
     userRole,
     loading,
     error,
+    isImpersonating,
     refreshOrganization: fetchUserOrganization,
     hasRole,
     // Convenience methods
@@ -136,8 +205,8 @@ export function OrganizationProvider({ children }) {
     isManager: userRole === 'manager' || userRole === 'admin' || userRole === 'owner',
     canManageUsers: userRole === 'admin' || userRole === 'owner',
     canManageSettings: userRole === 'admin' || userRole === 'owner',
-    canViewAnalytics: true, // All users can view analytics
-    canManageLeads: userRole !== 'user' // Everyone except basic users
+    canViewAnalytics: true,
+    canManageLeads: userRole !== 'user'
   };
 
   return (
