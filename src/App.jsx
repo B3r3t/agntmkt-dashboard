@@ -15,10 +15,26 @@ import NoOrganization from './components/NoOrganization';
 
 // Protected Admin Route Component
 function ProtectedAdminRoute() {
-  const { userRole, loading: orgLoading, isImpersonating } = useOrganization();
+  const { userRole, loading: orgLoading, isImpersonating, refreshOrganization } = useOrganization();
+  const [checking, setChecking] = useState(true);
+  
+  useEffect(() => {
+    // Check if we just returned from impersonation
+    const checkAdminAccess = async () => {
+      // If there's no impersonation data but context thinks we're impersonating,
+      // we need to refresh
+      const impersonatingOrg = localStorage.getItem('admin_impersonating');
+      if (!impersonatingOrg && isImpersonating) {
+        await refreshOrganization();
+      }
+      setChecking(false);
+    };
+    
+    checkAdminAccess();
+  }, [isImpersonating, refreshOrganization]);
   
   // Show loading while organization context is loading
-  if (orgLoading) {
+  if (orgLoading || checking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading admin dashboard...</div>
