@@ -163,9 +163,9 @@ export default function AdminDashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
-
+  
       console.log('Starting impersonation for:', org.name, org.id);
-
+  
       // Store admin session info
       localStorage.setItem('admin_impersonating', org.id);
       localStorage.setItem('admin_original_user', user.id);
@@ -173,8 +173,8 @@ export default function AdminDashboard() {
       localStorage.setItem('impersonated_org_name', org.name);
       localStorage.setItem('temp_organization_id', org.id);
       
-      // Force a page reload to ensure context refreshes
-      window.location.href = '/';
+      // Navigate to dashboard - context will detect impersonation and refresh
+      navigate('/');
       
     } catch (error) {
       console.error('Error impersonating client:', error);
