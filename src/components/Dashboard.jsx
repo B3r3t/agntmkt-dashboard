@@ -5,7 +5,7 @@ import { Users, TrendingUp, MessageSquare, Target, ArrowRight } from 'lucide-rea
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-  const { organization, loading: orgLoading, userRole, isAdmin } = useOrganization();
+  const { organization, loading: orgLoading, userRole } = useOrganization();
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
   const [stats, setStats] = useState({
