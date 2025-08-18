@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Users,
@@ -22,9 +22,16 @@ import {
   LogIn,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  ChevronDown,
+  Pause,
+  Play,
+  UserX,
+  Mail,
+  ArrowLeft
 } from 'lucide-react';
 import StatusMessage from './StatusMessage';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
   const [organizations, setOrganizations] = useState([]);
@@ -33,7 +40,34 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrgs, setSelectedOrgs] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [showBrandingModal, setShowBrandingModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedOrgForEdit, setSelectedOrgForEdit] = useState(null);
   const [status, setStatus] = useState({ type: '', message: '' });
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const bulkActionsRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Check if currently impersonating
+  useEffect(() => {
+    const impersonatingOrg = localStorage.getItem('admin_impersonating');
+    const originalUserId = localStorage.getItem('admin_original_user');
+    if (impersonatingOrg && originalUserId) {
+      setIsImpersonating(true);
+    }
+  }, []);
+
+  // Click outside handler for bulk actions dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (bulkActionsRef.current && !bulkActionsRef.current.contains(event.target)) {
+        setShowBulkActions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (status.message) {
@@ -46,7 +80,6 @@ export default function AdminDashboard() {
     fetchOrganizations();
   }, []);
 
-  // UPDATED: Fixed fetchOrganizations function
   const fetchOrganizations = async () => {
     try {
       setLoading(true);
@@ -66,17 +99,13 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Fetch ALL organizations - RLS will handle access control
+      // Fetch ALL organizations
       const { data: orgsData, error: orgsError } = await supabase
         .from('organizations')
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('📊 Organizations query:', { orgsData, orgsError });
-
-      if (orgsError) {
-        throw orgsError;
-      }
+      if (orgsError) throw orgsError;
 
       if (!orgsData || orgsData.length === 0) {
         setStatus({ 
@@ -87,31 +116,18 @@ export default function AdminDashboard() {
         return;
       }
 
-      console.log(`🏢 Found ${orgsData.length} organizations:`, orgsData.map(o => o.name));
-
       // Get additional data for each organization
       const orgsWithCounts = await Promise.all(
         orgsData.map(async (org) => {
           try {
-            console.log(`📈 Getting data for ${org.name}...`);
-
-            // Get counts in parallel
-            const [userCountResult, leadsCountResult, chatbotsCountResult] = await Promise.all([
-              supabase
-                .from('user_organizations')
-                .select('*', { count: 'exact' })
-                .eq('organization_id', org.id),
-              supabase
-                .from('leads')
-                .select('*', { count: 'exact' })
-                .eq('organization_id', org.id),
-              supabase
-                .from('chatbots')
-                .select('*', { count: 'exact' })
-                .eq('organization_id', org.id)
+            const [userCountResult, leadsCountResult, chatbotsCountResult, brandingResult] = await Promise.all([
+              supabase.from('user_organizations').select('*', { count: 'exact' }).eq('organization_id', org.id),
+              supabase.from('leads').select('*', { count: 'exact' }).eq('organization_id', org.id),
+              supabase.from('chatbots').select('*', { count: 'exact' }).eq('organization_id', org.id),
+              supabase.from('client_branding').select('*').eq('organization_id', org.id).single()
             ]);
 
-            const orgWithData = {
+            return {
               ...org,
               user_count: userCountResult.count || 0,
               leads_count: leadsCountResult.count || 0,
@@ -123,25 +139,15 @@ export default function AdminDashboard() {
                 document_processing: true,
                 custom_branding: true
               },
-              branding: {
+              branding: brandingResult.data || {
                 primary_color: '#3d3b3a',
                 secondary_color: '#737373',
                 accent_color: '#ff7f30'
               },
               status: org.status || 'active'
             };
-
-            console.log(`✅ ${org.name} data:`, {
-              users: orgWithData.user_count,
-              leads: orgWithData.leads_count,
-              chatbots: orgWithData.chatbots_count
-            });
-
-            return orgWithData;
-
           } catch (error) {
-            console.error(`❌ Error fetching data for ${org.name}:`, error);
-            // Return org with minimal data if error
+            console.error(`Error fetching data for ${org.name}:`, error);
             return {
               ...org,
               user_count: 0,
@@ -165,7 +171,6 @@ export default function AdminDashboard() {
         })
       );
 
-      console.log('🎯 Final organizations data:', orgsWithCounts);
       setOrganizations(orgsWithCounts);
       setStatus({ 
         type: 'success', 
@@ -191,23 +196,56 @@ export default function AdminDashboard() {
   });
 
   const handleBulkAction = async (action) => {
-    console.log(`Bulk ${action} for organizations:`, selectedOrgs);
+    if (selectedOrgs.length === 0) {
+      setStatus({ type: 'warning', message: 'No organizations selected.' });
+      return;
+    }
 
     try {
-      if (action === 'suspend') {
-        // Update organizations status to suspended
+      let updateData = {};
+      let successMessage = '';
+
+      switch(action) {
+        case 'suspend':
+          updateData = { status: 'suspended' };
+          successMessage = `Suspended ${selectedOrgs.length} organization(s).`;
+          break;
+        case 'activate':
+          updateData = { status: 'active' };
+          successMessage = `Activated ${selectedOrgs.length} organization(s).`;
+          break;
+        case 'delete':
+          if (!confirm(`Are you sure you want to delete ${selectedOrgs.length} organization(s)? This action cannot be undone.`)) {
+            return;
+          }
+          const { error: deleteError } = await supabase
+            .from('organizations')
+            .delete()
+            .in('id', selectedOrgs);
+          if (deleteError) throw deleteError;
+          successMessage = `Deleted ${selectedOrgs.length} organization(s).`;
+          break;
+        case 'email':
+          // Open email modal or redirect to email service
+          setStatus({ type: 'info', message: 'Email feature coming soon!' });
+          return;
+        default:
+          return;
+      }
+
+      if (action !== 'delete') {
         const { error } = await supabase
           .from('organizations')
-          .update({ status: 'suspended' })
+          .update(updateData)
           .in('id', selectedOrgs);
         
         if (error) throw error;
       }
 
-      // Refresh data and clear selection
       await fetchOrganizations();
       setSelectedOrgs([]);
-      setStatus({ type: 'success', message: `Bulk ${action} completed successfully.` });
+      setShowBulkActions(false);
+      setStatus({ type: 'success', message: successMessage });
     } catch (error) {
       console.error(`Error performing bulk ${action}:`, error);
       setStatus({ type: 'error', message: `Error performing bulk ${action}.` });
@@ -216,7 +254,6 @@ export default function AdminDashboard() {
 
   const handleFeatureToggle = async (orgId, feature) => {
     try {
-      // Check if feature exists
       const { data: existingFeature } = await supabase
         .from('client_features')
         .select('*')
@@ -225,7 +262,6 @@ export default function AdminDashboard() {
         .single();
 
       if (existingFeature) {
-        // Update existing feature
         const { error } = await supabase
           .from('client_features')
           .update({ is_enabled: !existingFeature.is_enabled })
@@ -234,7 +270,6 @@ export default function AdminDashboard() {
         
         if (error) throw error;
       } else {
-        // Create new feature
         const { error } = await supabase
           .from('client_features')
           .insert({
@@ -246,7 +281,6 @@ export default function AdminDashboard() {
         if (error) throw error;
       }
 
-      // Refresh data
       await fetchOrganizations();
     } catch (error) {
       console.error('Error toggling feature:', error);
@@ -254,17 +288,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleImpersonate = async (orgId) => {
+  const handleImpersonate = async (org) => {
     try {
-      // Store current admin session
-      localStorage.setItem('admin_impersonating', orgId);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
+      // Store admin session info
+      localStorage.setItem('admin_impersonating', org.id);
+      localStorage.setItem('admin_original_user', user.id);
       localStorage.setItem('admin_return_url', window.location.pathname);
+      localStorage.setItem('impersonated_org_name', org.name);
+      
+      // Set a temporary organization override
+      localStorage.setItem('temp_organization_id', org.id);
       
       // Navigate to main dashboard
       window.location.href = '/';
+      
     } catch (error) {
       console.error('Error impersonating client:', error);
+      setStatus({ type: 'error', message: 'Error switching to client view.' });
     }
+  };
+
+  const handleReturnToAdmin = () => {
+    // Clear impersonation data
+    localStorage.removeItem('admin_impersonating');
+    localStorage.removeItem('admin_original_user');
+    localStorage.removeItem('temp_organization_id');
+    localStorage.removeItem('impersonated_org_name');
+    
+    // Return to admin dashboard
+    const returnUrl = localStorage.getItem('admin_return_url') || '/admin';
+    localStorage.removeItem('admin_return_url');
+    
+    window.location.href = returnUrl;
   };
 
   const FeatureToggle = ({ enabled, onToggle, feature, orgId }) => (
@@ -292,7 +350,265 @@ export default function AdminDashboard() {
     );
   };
 
-  // UPDATED: Enhanced AddClientModal with auto-membership
+  // Branding Modal
+  const BrandingModal = () => {
+    const [brandingData, setBrandingData] = useState({
+      primary_color: selectedOrgForEdit?.branding?.primary_color || '#3B82F6',
+      secondary_color: selectedOrgForEdit?.branding?.secondary_color || '#10B981',
+      accent_color: selectedOrgForEdit?.branding?.accent_color || '#F59E0B',
+      logo_url: selectedOrgForEdit?.branding?.logo_url || '',
+      custom_css: selectedOrgForEdit?.branding?.custom_css || ''
+    });
+    const [saving, setSaving] = useState(false);
+
+    if (!showBrandingModal || !selectedOrgForEdit) return null;
+
+    const handleSave = async () => {
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from('client_branding')
+          .upsert({
+            organization_id: selectedOrgForEdit.id,
+            ...brandingData,
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+
+        setStatus({ type: 'success', message: 'Branding updated successfully!' });
+        setShowBrandingModal(false);
+        await fetchOrganizations();
+      } catch (error) {
+        setStatus({ type: 'error', message: 'Error updating branding.' });
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Edit Branding - {selectedOrgForEdit.name}
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Logo URL</label>
+              <input
+                type="url"
+                value={brandingData.logo_url}
+                onChange={(e) => setBrandingData(prev => ({ ...prev, logo_url: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                placeholder="https://example.com/logo.png"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Primary Color</label>
+              <div className="mt-1 flex items-center space-x-2">
+                <input
+                  type="color"
+                  value={brandingData.primary_color}
+                  onChange={(e) => setBrandingData(prev => ({ ...prev, primary_color: e.target.value }))}
+                  className="h-8 w-16"
+                />
+                <input
+                  type="text"
+                  value={brandingData.primary_color}
+                  onChange={(e) => setBrandingData(prev => ({ ...prev, primary_color: e.target.value }))}
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Secondary Color</label>
+              <div className="mt-1 flex items-center space-x-2">
+                <input
+                  type="color"
+                  value={brandingData.secondary_color}
+                  onChange={(e) => setBrandingData(prev => ({ ...prev, secondary_color: e.target.value }))}
+                  className="h-8 w-16"
+                />
+                <input
+                  type="text"
+                  value={brandingData.secondary_color}
+                  onChange={(e) => setBrandingData(prev => ({ ...prev, secondary_color: e.target.value }))}
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Accent Color</label>
+              <div className="mt-1 flex items-center space-x-2">
+                <input
+                  type="color"
+                  value={brandingData.accent_color}
+                  onChange={(e) => setBrandingData(prev => ({ ...prev, accent_color: e.target.value }))}
+                  className="h-8 w-16"
+                />
+                <input
+                  type="text"
+                  value={brandingData.accent_color}
+                  onChange={(e) => setBrandingData(prev => ({ ...prev, accent_color: e.target.value }))}
+                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Custom CSS</label>
+              <textarea
+                value={brandingData.custom_css}
+                onChange={(e) => setBrandingData(prev => ({ ...prev, custom_css: e.target.value }))}
+                rows={4}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                placeholder="/* Custom CSS styles */"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              onClick={() => setShowBrandingModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Settings Modal
+  const SettingsModal = () => {
+    const [settingsData, setSettingsData] = useState({
+      name: selectedOrgForEdit?.name || '',
+      industry: selectedOrgForEdit?.industry || '',
+      website: selectedOrgForEdit?.website || '',
+      contact_name: selectedOrgForEdit?.contact_name || '',
+      contact_email: selectedOrgForEdit?.contact_email || '',
+      status: selectedOrgForEdit?.status || 'active'
+    });
+    const [saving, setSaving] = useState(false);
+
+    if (!showSettingsModal || !selectedOrgForEdit) return null;
+
+    const handleSave = async () => {
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from('organizations')
+          .update({
+            ...settingsData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedOrgForEdit.id);
+
+        if (error) throw error;
+
+        setStatus({ type: 'success', message: 'Settings updated successfully!' });
+        setShowSettingsModal(false);
+        await fetchOrganizations();
+      } catch (error) {
+        setStatus({ type: 'error', message: 'Error updating settings.' });
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Edit Settings - {selectedOrgForEdit.name}
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Organization Name</label>
+              <input
+                type="text"
+                value={settingsData.name}
+                onChange={(e) => setSettingsData(prev => ({ ...prev, name: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Industry</label>
+              <input
+                type="text"
+                value={settingsData.industry}
+                onChange={(e) => setSettingsData(prev => ({ ...prev, industry: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Website</label>
+              <input
+                type="url"
+                value={settingsData.website}
+                onChange={(e) => setSettingsData(prev => ({ ...prev, website: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Contact Name</label>
+              <input
+                type="text"
+                value={settingsData.contact_name}
+                onChange={(e) => setSettingsData(prev => ({ ...prev, contact_name: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Contact Email</label>
+              <input
+                type="email"
+                value={settingsData.contact_email}
+                onChange={(e) => setSettingsData(prev => ({ ...prev, contact_email: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Status</label>
+              <select
+                value={settingsData.status}
+                onChange={(e) => setSettingsData(prev => ({ ...prev, status: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+              >
+                <option value="active">Active</option>
+                <option value="trial">Trial</option>
+                <option value="suspended">Suspended</option>
+                <option value="churned">Churned</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              onClick={() => setShowSettingsModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add Client Modal (same as before but updated)
   const AddClientModal = () => {
     const [formData, setFormData] = useState({
       name: '',
@@ -308,11 +624,9 @@ export default function AdminDashboard() {
       setSaving(true);
 
       try {
-        // Get current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('No authenticated user');
 
-        // Step 1: Create the organization
         const { data: org, error: orgError } = await supabase
           .from('organizations')
           .insert([formData])
@@ -320,31 +634,22 @@ export default function AdminDashboard() {
           .single();
         if (orgError) throw orgError;
 
-        console.log('✅ Created organization:', org.name);
+        // Add yourself as admin of the new organization
+        await supabase.from('user_organizations').insert({
+          user_id: user.id,
+          organization_id: org.id,
+          role: 'admin'
+        });
 
-        // Step 2: Add yourself as admin of the new organization
-        const { error: userOrgError } = await supabase
-          .from('user_organizations')
-          .insert({
-            user_id: user.id,
-            organization_id: org.id,
-            role: 'admin'  // You're admin of this new org too
-          });
-        if (userOrgError) console.warn('Warning adding user to org:', userOrgError);
+        // Create default branding
+        await supabase.from('client_branding').insert({
+          organization_id: org.id,
+          primary_color: '#3B82F6',
+          secondary_color: '#10B981', 
+          accent_color: '#F59E0B'
+        });
 
-        // Step 3: Create default branding
-        const { error: brandingError } = await supabase
-          .from('client_branding')
-          .insert({
-            organization_id: org.id,
-            primary_color: '#3B82F6',
-            secondary_color: '#10B981', 
-            accent_color: '#F59E0B',
-            logo_url: null
-          });
-        if (brandingError) console.warn('Warning creating branding:', brandingError);
-
-        // Step 4: Initialize default features
+        // Initialize default features
         const defaultFeatures = [
           { feature_name: 'lead_scoring', is_enabled: true },
           { feature_name: 'chatbots', is_enabled: true },
@@ -352,36 +657,8 @@ export default function AdminDashboard() {
           { feature_name: 'custom_branding', is_enabled: true }
         ].map(f => ({ ...f, organization_id: org.id }));
 
-        const { error: featuresError } = await supabase
-          .from('client_features')
-          .insert(defaultFeatures);
-        if (featuresError) console.warn('Warning creating features:', featuresError);
-
-        // Step 5: Default scoring configuration
-        const { error: scoringError } = await supabase
-          .from('scoring_configs')
-          .insert({
-            organization_id: org.id,
-            name: 'Default Scoring',
-            description: 'Default lead scoring criteria',
-            criteria: {
-              job_title: { weight: 25 },
-              company_size: { weight: 25 },
-              industry_match: { weight: 30 },
-              engagement: { weight: 20 }
-            },
-            weights: {
-              job_title: 25,
-              company_size: 25,
-              industry_match: 30,
-              engagement: 20
-            },
-            is_active: true,
-            created_by: user.id
-          });
-        if (scoringError) console.warn('Warning creating scoring config:', scoringError);
+        await supabase.from('client_features').insert(defaultFeatures);
         
-        // Refresh data and close modal
         await fetchOrganizations();
         setShowAddModal(false);
         setFormData({ name: '', industry: '', contact_email: '', contact_name: '', website: '' });
@@ -389,8 +666,6 @@ export default function AdminDashboard() {
           type: 'success', 
           message: `Client "${org.name}" created successfully!` 
         });
-
-        console.log('🎉 New organization fully set up:', org.name);
         
       } catch (error) {
         console.error('Error creating organization:', error);
@@ -489,6 +764,32 @@ export default function AdminDashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading admin dashboard...</div>
+      </div>
+    );
+  }
+
+  // Show "Return to Admin" banner if impersonating
+  if (isImpersonating) {
+    const impersonatedOrgName = localStorage.getItem('impersonated_org_name');
+    return (
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-yellow-400 mr-3" />
+              <p className="text-sm text-yellow-700">
+                You are currently viewing as: <strong>{impersonatedOrgName}</strong>
+              </p>
+            </div>
+            <button
+              onClick={handleReturnToAdmin}
+              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Return to Admin
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -623,15 +924,55 @@ export default function AdminDashboard() {
               </select>
               
               {selectedOrgs.length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">{selectedOrgs.length} selected</span>
+                <div className="relative" ref={bulkActionsRef}>
                   <button
-                    onClick={() => handleBulkAction('suspend')}
+                    onClick={() => setShowBulkActions(!showBulkActions)}
                     className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
                     Bulk Actions
+                    <ChevronDown className="ml-2 h-3 w-3" />
                   </button>
+                  
+                  {showBulkActions && (
+                    <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+                      <div className="py-1">
+                        <button
+                          onClick={() => handleBulkAction('activate')}
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          <Play className="mr-3 h-4 w-4" />
+                          Activate
+                        </button>
+                        <button
+                          onClick={() => handleBulkAction('suspend')}
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          <Pause className="mr-3 h-4 w-4" />
+                          Suspend
+                        </button>
+                        <button
+                          onClick={() => handleBulkAction('email')}
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          <Mail className="mr-3 h-4 w-4" />
+                          Send Email
+                        </button>
+                        <hr className="my-1" />
+                        <button
+                          onClick={() => handleBulkAction('delete')}
+                          className="flex items-center px-4 py-2 text-sm text-red-700 hover:bg-red-50 w-full text-left"
+                        >
+                          <Trash2 className="mr-3 h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
+              
+              {selectedOrgs.length > 0 && (
+                <span className="text-sm text-gray-500">{selectedOrgs.length} selected</span>
               )}
             </div>
           </div>
@@ -718,20 +1059,31 @@ export default function AdminDashboard() {
                   {/* Action Buttons */}
                   <div className="flex items-center space-x-2">
                     <button 
-                      onClick={() => handleImpersonate(org.id)}
+                      onClick={() => handleImpersonate(org)}
                       className="p-2 text-gray-400 hover:text-orange-600 rounded-full hover:bg-gray-100"
                       title="View as Client"
                     >
                       <LogIn className="h-4 w-4" />
                     </button>
                     <button 
+                      onClick={() => {
+                        setSelectedOrgForEdit(org);
+                        setShowBrandingModal(true);
+                      }}
                       className="p-2 text-gray-400 hover:text-blue-600 rounded-full hover:bg-gray-100"
                       title="Edit Branding"
                     >
                       <Palette className="h-4 w-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-gray-100">
-                      <Settings className="h-4 w-4" title="Settings" />
+                    <button 
+                      onClick={() => {
+                        setSelectedOrgForEdit(org);
+                        setShowSettingsModal(true);
+                      }}
+                      className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-gray-100"
+                      title="Settings"
+                    >
+                      <Settings className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -771,13 +1123,17 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-center">
                   <div className="flex space-x-2">
                     <button 
-                      onClick={() => handleImpersonate(org.id)}
+                      onClick={() => handleImpersonate(org)}
                       className="p-2 text-orange-600 bg-orange-100 rounded-full"
                       title="View as Client"
                     >
                       <LogIn className="h-4 w-4" />
                     </button>
                     <button 
+                      onClick={() => {
+                        setSelectedOrgForEdit(org);
+                        setShowBrandingModal(true);
+                      }}
                       className="p-2 text-blue-600 bg-blue-100 rounded-full"
                       title="Edit Branding"
                     >
@@ -868,6 +1224,8 @@ export default function AdminDashboard() {
 
       {/* Modals */}
       <AddClientModal />
+      <BrandingModal />
+      <SettingsModal />
     </div>
   );
 }
