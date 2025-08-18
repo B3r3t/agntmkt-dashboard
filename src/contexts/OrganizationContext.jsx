@@ -106,7 +106,24 @@ export function OrganizationProvider({ children }) {
           custom_css: null
         });
         setFeatures(featuresMap);
-        setUserRole('client_admin'); // Set as client admin when impersonating
+        
+        // Keep the original admin role when impersonating
+        // The isImpersonating flag tells us we're viewing as a client
+        // Verify the original user is actually an admin
+        const { data: originalRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', originalUserId)
+          .single();
+        
+        if (originalRole?.role === 'admin') {
+          setUserRole('admin'); // Keep admin role when impersonating
+          console.log('Maintaining admin role during impersonation');
+        } else {
+          // Shouldn't happen, but handle gracefully
+          setUserRole('client_admin');
+          console.warn('Original user is not admin, setting to client_admin');
+        }
         
       } else {
         // Normal user flow - not impersonating
@@ -120,48 +137,37 @@ export function OrganizationProvider({ children }) {
           .eq('user_id', user.id)
           .single();
 
-        if (roleError || !userRoleData) {
+        if (roleError) {
           console.error('Error fetching user role:', roleError);
-          setError('No role found for user');
+          setError('Failed to fetch user role');
           setLoading(false);
           return;
         }
 
-        // Set the user's actual role
-        setUserRole(userRoleData.role);
-        console.log('User role:', userRoleData.role, 'Org ID:', userRoleData.organization_id);
-        
-        // Now fetch the organization if they have one
-        if (userRoleData.organization_id) {
+        console.log('User role data:', userRoleData);
+        setUserRole(userRoleData?.role || 'user');
+
+        // If user has an organization, load it
+        if (userRoleData?.organization_id) {
           const { data: orgData, error: orgError } = await supabase
             .from('organizations')
             .select('*')
             .eq('id', userRoleData.organization_id)
             .single();
-          
-          if (orgData) {
+
+          if (orgError) {
+            console.error('Error fetching organization:', orgError);
+            setError('Failed to fetch organization');
+          } else {
+            console.log('Organization loaded:', orgData.name);
             setOrganization(orgData);
-            
-            // Get branding
+
+            // Fetch branding
             const { data: brandingData } = await supabase
               .from('client_branding')
               .select('*')
-              .eq('organization_id', userRoleData.organization_id)
+              .eq('organization_id', orgData.id)
               .single();
-
-            // Get features
-            const { data: featuresData } = await supabase
-              .from('client_features')
-              .select('feature_name, is_enabled')
-              .eq('organization_id', userRoleData.organization_id);
-
-            // Process features into an object
-            const featuresMap = {};
-            if (featuresData) {
-              featuresData.forEach(f => {
-                featuresMap[f.feature_name] = f.is_enabled;
-              });
-            }
 
             setBranding(brandingData || {
               primary_color: '#3B82F6',
@@ -170,14 +176,25 @@ export function OrganizationProvider({ children }) {
               logo_url: null,
               custom_css: null
             });
+
+            // Fetch features
+            const { data: featuresData } = await supabase
+              .from('client_features')
+              .select('feature_name, is_enabled')
+              .eq('organization_id', orgData.id);
+
+            const featuresMap = {};
+            if (featuresData) {
+              featuresData.forEach(f => {
+                featuresMap[f.feature_name] = f.is_enabled;
+              });
+            }
             setFeatures(featuresMap);
-            
-            console.log('Organization loaded:', orgData.name);
           }
         } else {
-          // User has no organization
-          if (userRoleData.role === 'admin') {
-            // Admin without org - this is okay
+          // User without organization
+          if (userRoleData?.role === 'admin') {
+            // Admin users don't need an organization (they manage all)
             console.log('Admin user without organization');
             setOrganization(null);
             setBranding({
@@ -251,44 +268,9 @@ export function OrganizationProvider({ children }) {
     return userLevel >= requiredLevel;
   };
 
-  // Apply custom CSS from branding
-  useEffect(() => {
-    if (branding?.custom_css) {
-      // Remove any existing custom styles
-      const existingStyle = document.getElementById('client-custom-styles');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-
-      // Add new custom styles
-      const styleElement = document.createElement('style');
-      styleElement.id = 'client-custom-styles';
-      styleElement.textContent = branding.custom_css;
-      document.head.appendChild(styleElement);
-
-      // Cleanup on unmount
-      return () => {
-        const el = document.getElementById('client-custom-styles');
-        if (el) el.remove();
-      };
-    }
-  }, [branding]);
-
-  // Apply brand colors as CSS variables
-  useEffect(() => {
-    if (branding) {
-      const root = document.documentElement;
-      if (branding.primary_color) {
-        root.style.setProperty('--brand-primary', branding.primary_color);
-      }
-      if (branding.secondary_color) {
-        root.style.setProperty('--brand-secondary', branding.secondary_color);
-      }
-      if (branding.accent_color) {
-        root.style.setProperty('--brand-accent', branding.accent_color);
-      }
-    }
-  }, [branding]);
+  const refreshOrganization = useCallback(() => {
+    return fetchUserOrganization();
+  }, [fetchUserOrganization]);
 
   const value = {
     organization,
@@ -298,17 +280,8 @@ export function OrganizationProvider({ children }) {
     loading,
     error,
     isImpersonating,
-    refreshOrganization: fetchUserOrganization,
     hasRole,
-    // Convenience methods
-    isOwner: userRole === 'owner',
-    isAdmin: userRole === 'admin',
-    isClientAdmin: userRole === 'client_admin' || userRole === 'admin' || userRole === 'owner',
-    isManager: userRole === 'manager' || userRole === 'client_admin' || userRole === 'admin' || userRole === 'owner',
-    canManageUsers: userRole === 'client_admin' || userRole === 'admin' || userRole === 'owner',
-    canManageSettings: userRole === 'client_admin' || userRole === 'admin' || userRole === 'owner',
-    canViewAnalytics: true,
-    canManageLeads: userRole !== 'user'
+    refreshOrganization
   };
 
   return (
@@ -317,5 +290,3 @@ export function OrganizationProvider({ children }) {
     </OrganizationContext.Provider>
   );
 }
-
-export default OrganizationProvider;
