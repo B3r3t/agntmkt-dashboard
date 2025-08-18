@@ -35,13 +35,8 @@ export default function Layout() {
     localStorage.removeItem('impersonated_org_name');
     localStorage.removeItem('admin_return_url');
     
-    // Navigate to admin dashboard FIRST
-    navigate('/admin');
-    
-    // Then refresh the organization context after navigation
-    setTimeout(() => {
-      refreshOrganization();
-    }, 100);
+    // Force a page reload to ensure context refreshes
+    window.location.href = '/admin';
   };
 
   // Get logo to display
