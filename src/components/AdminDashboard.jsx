@@ -204,32 +204,6 @@ export default function AdminDashboard() {
     </div>
   );
 
-  // Show return to admin banner if impersonating
-  if (isImpersonating) {
-    const impersonatedOrgName = localStorage.getItem('impersonated_org_name');
-    return (
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-yellow-400 mr-3" />
-              <p className="text-sm text-yellow-700">
-                You are currently viewing as: <strong>{impersonatedOrgName}</strong>
-              </p>
-            </div>
-            <button
-              onClick={handleReturnToAdmin}
-              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Return to Admin
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const filteredOrgs = organizations.filter(org => {
     const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           org.industry?.toLowerCase().includes(searchTerm.toLowerCase());
