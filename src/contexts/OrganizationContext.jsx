@@ -212,20 +212,26 @@ export function OrganizationProvider({ children }) {
     fetchUserOrganization();
   }, []);
 
-  // Watch for navigation to /admin specifically
+  // Watch for navigation changes and impersonation
   useEffect(() => {
+    const tempOrgId = localStorage.getItem('temp_organization_id');
+    const adminImpersonating = localStorage.getItem('admin_impersonating');
+    
+    // If we're navigating FROM /admin TO / with impersonation data, reload
+    if (location.pathname === '/' && tempOrgId && adminImpersonating && !isImpersonating) {
+      console.log('Detected impersonation start, refreshing context...');
+      fetchUserOrganization();
+    }
+    
     // If we're on /admin and there's no impersonation data, refresh
     if (location.pathname === '/admin') {
-      const tempOrgId = localStorage.getItem('temp_organization_id');
-      const adminImpersonating = localStorage.getItem('admin_impersonating');
-      
       if (!tempOrgId && !adminImpersonating && isImpersonating) {
         // We were impersonating but now the data is cleared
         console.log('Detected return to admin, refreshing context...');
         fetchUserOrganization();
       }
     }
-  }, [location.pathname, isImpersonating]);
+  }, [location.pathname]);
 
   // Helper functions for role-based access
   const hasRole = (requiredRole) => {
