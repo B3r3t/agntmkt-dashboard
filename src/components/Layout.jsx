@@ -1,4 +1,4 @@
-// Layout.jsx - Fixed Return to Admin functionality
+// Layout.jsx - Fixed Return to Admin with proper refresh
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -7,28 +7,11 @@ import { Menu, X, ArrowLeft, AlertCircle } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
-  const { organization, branding, userRole, isImpersonating, refreshOrganization } = useOrganization();
+  const { organization, branding, userRole, isImpersonating, features, refreshOrganization } = useOrganization();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [impersonatingInfo, setImpersonatingInfo] = useState(null);
   
-  // System admin check
-  const isSystemAdmin = userRole === 'admin';
-
-  useEffect(() => {
-    // Check if currently impersonating
-    const impersonatingOrg = localStorage.getItem('admin_impersonating');
-    const impersonatedOrgName = localStorage.getItem('impersonated_org_name');
-    const originalUserId = localStorage.getItem('admin_original_user');
-    
-    if (impersonatingOrg && originalUserId) {
-      setImpersonatingInfo({
-        orgId: impersonatingOrg,
-        orgName: impersonatedOrgName || 'Client'
-      });
-    } else {
-      setImpersonatingInfo(null);
-    }
-  }, []);
+  // System admin check - but not when impersonating
+  const isSystemAdmin = userRole === 'admin' && !isImpersonating;
 
   const handleSignOut = async () => {
     // Clear any impersonation data when signing out
@@ -43,37 +26,43 @@ export default function Layout() {
   };
 
   const handleReturnToAdmin = async () => {
-    // Clear impersonation data
+    console.log('Returning to admin...');
+    
+    // Clear ALL impersonation data
     localStorage.removeItem('admin_impersonating');
     localStorage.removeItem('admin_original_user');
     localStorage.removeItem('temp_organization_id');
     localStorage.removeItem('impersonated_org_name');
     localStorage.removeItem('admin_return_url');
     
+    // Trigger a storage event to refresh organization context
+    localStorage.setItem('refresh_organization', Date.now().toString());
+    
     // Navigate to admin dashboard
     navigate('/admin');
     
-    // Refresh the organization context to reset to admin view
+    // Force a hard refresh after a short delay
     setTimeout(() => {
-      refreshOrganization();
+      window.location.href = '/admin';
     }, 100);
   };
 
   // Get logo to display
   const logoUrl = branding?.logo_url;
   const orgName = organization?.name || 'Dashboard';
+  const impersonatedOrgName = localStorage.getItem('impersonated_org_name');
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Show Return to Admin banner if impersonating */}
-      {impersonatingInfo && (
+      {isImpersonating && (
         <div className="bg-yellow-50 border-b border-yellow-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center">
                 <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
                 <p className="text-sm text-yellow-700">
-                  You are currently viewing as: <strong>{impersonatingInfo.orgName}</strong>
+                  You are currently viewing as: <strong>{impersonatedOrgName || orgName}</strong>
                 </p>
               </div>
               <button
@@ -169,7 +158,7 @@ export default function Layout() {
                 </NavLink>
 
                 {/* Show Chatbots if feature is enabled */}
-                {organization?.features?.chatbots !== false && (
+                {features?.chatbots !== false && (
                   <NavLink
                     to="/chatbots"
                     className={({ isActive }) =>
@@ -189,8 +178,8 @@ export default function Layout() {
                   </NavLink>
                 )}
 
-                {/* Show Scoring if feature is enabled */}
-                {organization?.features?.lead_scoring !== false && (
+                {/* Show AI Scoring if feature is enabled */}
+                {features?.lead_scoring !== false && (
                   <NavLink
                     to="/scoring"
                     className={({ isActive }) =>
@@ -211,7 +200,7 @@ export default function Layout() {
                 )}
 
                 {/* Admin link - only for system admins, not when impersonating */}
-                {isSystemAdmin && !isImpersonating && (
+                {isSystemAdmin && (
                   <NavLink
                     to="/admin"
                     className={({ isActive }) =>
@@ -290,7 +279,69 @@ export default function Layout() {
                 Leads
               </NavLink>
 
-              {/* Add other mobile menu items similarly */}
+              <NavLink
+                to="/analytics"
+                className={({ isActive }) =>
+                  `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                    isActive
+                      ? 'bg-orange-50 border-orange-500 text-orange-700'
+                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                  }`
+                }
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Analytics
+              </NavLink>
+
+              {/* Conditional menu items for features */}
+              {features?.chatbots !== false && (
+                <NavLink
+                  to="/chatbots"
+                  className={({ isActive }) =>
+                    `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                      isActive
+                        ? 'bg-orange-50 border-orange-500 text-orange-700'
+                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                    }`
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Chatbots
+                </NavLink>
+              )}
+
+              {features?.lead_scoring !== false && (
+                <NavLink
+                  to="/scoring"
+                  className={({ isActive }) =>
+                    `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                      isActive
+                        ? 'bg-orange-50 border-orange-500 text-orange-700'
+                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                    }`
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  AI Scoring
+                </NavLink>
+              )}
+
+              {/* Admin link in mobile */}
+              {isSystemAdmin && (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                      isActive
+                        ? 'bg-orange-50 border-orange-500 text-orange-700'
+                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                    }`
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Admin
+                </NavLink>
+              )}
               
               <button
                 onClick={handleSignOut}
