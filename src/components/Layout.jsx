@@ -1,24 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ArrowLeft, AlertCircle } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
-  const { organization, branding, userRole, isAdmin } = useOrganization();
+  const { organization, branding, userRole, isAdmin, isImpersonating } = useOrganization();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [impersonatingInfo, setImpersonatingInfo] = useState(null);
   
   // Only true admins (AgentMarket staff) can access admin dashboard
   const isSystemAdmin = userRole === 'admin';
 
+  useEffect(() => {
+    // Check if currently impersonating
+    const impersonatingOrg = localStorage.getItem('admin_impersonating');
+    const impersonatedOrgName = localStorage.getItem('impersonated_org_name');
+    const originalUserId = localStorage.getItem('admin_original_user');
+    
+    if (impersonatingOrg && originalUserId) {
+      setImpersonatingInfo({
+        orgId: impersonatingOrg,
+        orgName: impersonatedOrgName || 'Client'
+      });
+    }
+  }, []);
+
   const handleSignOut = async () => {
+    // Clear any impersonation data when signing out
+    localStorage.removeItem('admin_impersonating');
+    localStorage.removeItem('admin_original_user');
+    localStorage.removeItem('temp_organization_id');
+    localStorage.removeItem('impersonated_org_name');
+    localStorage.removeItem('admin_return_url');
+    
     await supabase.auth.signOut();
     navigate('/');
   };
 
+  const handleReturnToAdmin = () => {
+    // Clear impersonation data
+    localStorage.removeItem('admin_impersonating');
+    localStorage.removeItem('admin_original_user');
+    localStorage.removeItem('temp_organization_id');
+    localStorage.removeItem('impersonated_org_name');
+    
+    // Return to admin dashboard
+    const returnUrl = localStorage.getItem('admin_return_url') || '/admin';
+    localStorage.removeItem('admin_return_url');
+    
+    window.location.href = returnUrl;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Show Return to Admin banner if impersonating */}
+      {impersonatingInfo && (
+        <div className="bg-yellow-50 border-b border-yellow-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-3">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-yellow-400 mr-3" />
+                <p className="text-sm text-yellow-700">
+                  You are currently viewing as: <strong>{impersonatingInfo.orgName}</strong>
+                </p>
+              </div>
+              <button
+                onClick={handleReturnToAdmin}
+                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Return to Admin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Header */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,7 +92,6 @@ export default function Layout() {
                       src={branding.logo_url}
                       alt={organization?.name || 'Logo'}
                       onError={(e) => {
-                        // Hide image and show text fallback if image fails
                         e.target.style.display = 'none';
                         const textFallback = e.target.nextElementSibling;
                         if (textFallback) {
@@ -116,8 +174,8 @@ export default function Layout() {
                   Scoring
                 </NavLink>
                 
-                {/* Admin Link - Only show for system admins (AgentMarket staff) */}
-                {isSystemAdmin && (
+                {/* Admin Link - Only show for system admins and NOT when impersonating */}
+                {isSystemAdmin && !impersonatingInfo && (
                   <NavLink 
                     to="/admin"
                     className={({ isActive }) =>
@@ -220,8 +278,8 @@ export default function Layout() {
                 Scoring
               </NavLink>
               
-              {/* Admin Link - Only show for system admins (AgentMarket staff) */}
-              {isSystemAdmin && (
+              {/* Admin Link - Only show for system admins and NOT when impersonating */}
+              {isSystemAdmin && !impersonatingInfo && (
                 <NavLink
                   to="/admin"
                   className={({ isActive }) =>
