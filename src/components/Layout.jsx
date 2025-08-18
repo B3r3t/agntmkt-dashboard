@@ -28,15 +28,18 @@ export default function Layout() {
   const handleReturnToAdmin = async () => {
     console.log('Returning to admin...');
     
-    // Clear ALL impersonation data
+    // Clear ALL impersonation data FIRST
     localStorage.removeItem('admin_impersonating');
     localStorage.removeItem('admin_original_user');
     localStorage.removeItem('temp_organization_id');
     localStorage.removeItem('impersonated_org_name');
     localStorage.removeItem('admin_return_url');
     
-    // Force a page reload to ensure context refreshes
-    window.location.href = '/admin';
+    // Force refresh the organization context
+    await refreshOrganization();
+    
+    // Then navigate to admin page
+    navigate('/admin');
   };
 
   // Get logo to display
@@ -149,8 +152,7 @@ export default function Layout() {
                   Analytics
                 </NavLink>
 
-                {/* Show Chatbots if feature is enabled */}
-                {features?.chatbots !== false && (
+                {features.chatbots !== false && (
                   <NavLink
                     to="/chatbots"
                     className={({ isActive }) =>
@@ -170,28 +172,7 @@ export default function Layout() {
                   </NavLink>
                 )}
 
-                {/* Show AI Scoring if feature is enabled */}
-                {features?.lead_scoring !== false && (
-                  <NavLink
-                    to="/scoring"
-                    className={({ isActive }) =>
-                      `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                        isActive
-                          ? 'border-orange-500 text-gray-900'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                      }`
-                    }
-                    style={({ isActive }) => 
-                      isActive && branding?.primary_color 
-                        ? { borderBottomColor: branding.primary_color, color: branding.primary_color }
-                        : undefined
-                    }
-                  >
-                    AI Scoring
-                  </NavLink>
-                )}
-
-                {/* Admin link - only for system admins, not when impersonating */}
+                {/* Show Admin link for system admins */}
                 {isSystemAdmin && (
                   <NavLink
                     to="/admin"
@@ -239,7 +220,7 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Mobile menu - same as before */}
+        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="sm:hidden">
             <div className="pt-2 pb-3 space-y-1">
@@ -285,7 +266,7 @@ export default function Layout() {
                 Analytics
               </NavLink>
 
-              {features?.chatbots !== false && (
+              {features.chatbots !== false && (
                 <NavLink
                   to="/chatbots"
                   className={({ isActive }) =>
@@ -298,22 +279,6 @@ export default function Layout() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Chatbots
-                </NavLink>
-              )}
-
-              {features?.lead_scoring !== false && (
-                <NavLink
-                  to="/scoring"
-                  className={({ isActive }) =>
-                    `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                      isActive
-                        ? 'bg-orange-50 border-orange-500 text-orange-700'
-                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                    }`
-                  }
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  AI Scoring
                 </NavLink>
               )}
 
@@ -332,9 +297,12 @@ export default function Layout() {
                   Admin
                 </NavLink>
               )}
-              
+
               <button
-                onClick={handleSignOut}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleSignOut();
+                }}
                 className="block w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"
               >
                 Sign Out
