@@ -1,4 +1,4 @@
-// Layout.jsx - Fixed Return to Admin with proper refresh
+// Layout.jsx - Fixed without hard refresh
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -35,15 +35,12 @@ export default function Layout() {
     localStorage.removeItem('impersonated_org_name');
     localStorage.removeItem('admin_return_url');
     
-    // Trigger a storage event to refresh organization context
-    localStorage.setItem('refresh_organization', Date.now().toString());
-    
-    // Navigate to admin dashboard
+    // Navigate to admin dashboard FIRST
     navigate('/admin');
     
-    // Force a hard refresh after a short delay
+    // Then refresh the organization context after navigation
     setTimeout(() => {
-      window.location.href = '/admin';
+      refreshOrganization();
     }, 100);
   };
 
@@ -247,7 +244,7 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile menu - same as before */}
         {mobileMenuOpen && (
           <div className="sm:hidden">
             <div className="pt-2 pb-3 space-y-1">
@@ -293,7 +290,6 @@ export default function Layout() {
                 Analytics
               </NavLink>
 
-              {/* Conditional menu items for features */}
               {features?.chatbots !== false && (
                 <NavLink
                   to="/chatbots"
@@ -326,7 +322,6 @@ export default function Layout() {
                 </NavLink>
               )}
 
-              {/* Admin link in mobile */}
               {isSystemAdmin && (
                 <NavLink
                   to="/admin"
