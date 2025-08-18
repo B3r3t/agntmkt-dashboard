@@ -43,6 +43,8 @@ export function OrganizationProvider({ children }) {
       const originalUserId = localStorage.getItem('admin_original_user');
       const adminImpersonating = localStorage.getItem('admin_impersonating');
       
+      console.log('Checking impersonation:', { tempOrgId, originalUserId, adminImpersonating, currentUserId: user.id });
+      
       // Clear state first if not impersonating
       if (!tempOrgId || !adminImpersonating) {
         setIsImpersonating(false);
