@@ -61,8 +61,7 @@ export default function ScoringConfigPage() {
       time_frame: '3-6 months',
       state: 'TX',
       zip_code: '75001',
-      message:
-        'I currently operate 4 Elements Massage locations and want to expand with MassageLuXe in Texas markets.'
+      message: 'I currently operate 4 Elements Massage locations and want to expand with MassageLuXe in Texas markets.'
     },
     warm: {
       first_name: 'Mike',
@@ -75,8 +74,7 @@ export default function ScoringConfigPage() {
       time_frame: '6-12 months',
       state: 'CA',
       zip_code: '94102',
-      message:
-        'VP of Operations at regional healthcare company, interested in franchise ownership.'
+      message: 'VP of Operations at regional healthcare company, interested in franchise ownership.'
     },
     cold: {
       first_name: 'Jennifer',
@@ -97,32 +95,55 @@ export default function ScoringConfigPage() {
     setIsLoading(true);
     setError(null);
     setTestResults(null);
+
     try {
-      const response = await fetch('/api/test-lead-scoring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organization_id: organization?.id,
-          lead: testLead
-        })
-      });
+      const payload = {
+        brand: organization?.name || 'AGNTMKT',
+        source: 'dashboard-test',
+        lead_data: {
+          first_name: testLead.first_name,
+          last_name: testLead.last_name,
+          email: testLead.email,
+          phone: testLead.phone,
+          company: testLead.company,
+          liquid_capital: testLead.liquid_capital,
+          net_worth: testLead.net_worth || '0',
+          time_frame: testLead.time_frame,
+          state: testLead.state,
+          zip_code: testLead.zip_code,
+          message: testLead.message
+        }
+      };
+
+      const response = await fetch(
+        'https://brndmkt.app.n8n.cloud/webhook-test/dashboard-client-test',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to test lead scoring');
+        throw new Error(`Webhook responded with status: ${response.status}`);
       }
 
       const data = await response.json();
-
       setTestResults(data);
-      setExpandedSections({
-        financial: true,
-        professional: true,
-        insights: true,
-        nextSteps: true
-      });
     } catch (err) {
-      console.error('Test lead scoring failed:', err);
-      setError(err.message || 'Failed to test lead scoring');
+      console.error('Error testing lead:', err);
+      if (err.message.includes('Failed to fetch')) {
+        setError('Unable to connect to scoring service. This may be a network issue. Please try again.');
+      } else if (err.message.includes('404')) {
+        setError('Scoring service not found. Please contact support.');
+      } else if (err.message.includes('timeout')) {
+        setError('The scoring process timed out. Please try again.');
+      } else {
+        setError(err.message || 'An unexpected error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -275,7 +296,7 @@ export default function ScoringConfigPage() {
 
               {/* Form Fields Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Contact Information */}
+                {/* First Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     First Name *
@@ -291,10 +312,10 @@ export default function ScoringConfigPage() {
                   />
                 </div>
 
-                {/* Repeat for all other fields... */}
+                {/* Last Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name
+                    Last Name *
                   </label>
                   <input
                     type="text"
@@ -303,9 +324,11 @@ export default function ScoringConfigPage() {
                       setTestLead({ ...testLead, last_name: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    required
                   />
                 </div>
 
+                {/* Email */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email *
@@ -321,9 +344,10 @@ export default function ScoringConfigPage() {
                   />
                 </div>
 
+                {/* Phone */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
+                    Phone *
                   </label>
                   <input
                     type="tel"
@@ -332,9 +356,11 @@ export default function ScoringConfigPage() {
                       setTestLead({ ...testLead, phone: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    required
                   />
                 </div>
 
+                {/* Company */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Company
@@ -349,48 +375,61 @@ export default function ScoringConfigPage() {
                   />
                 </div>
 
+                {/* Liquid Capital */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Liquid Capital
+                    Liquid Capital *
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={testLead.liquid_capital}
                     onChange={(e) =>
                       setTestLead({ ...testLead, liquid_capital: e.target.value })
                     }
+                    placeholder="e.g., 250000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    required
                   />
                 </div>
 
+                {/* Net Worth */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Net Worth
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={testLead.net_worth}
                     onChange={(e) =>
                       setTestLead({ ...testLead, net_worth: e.target.value })
                     }
+                    placeholder="e.g., 1000000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                   />
                 </div>
 
+                {/* Timeline - DROPDOWN */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Time Frame
+                    Timeline *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={testLead.time_frame}
                     onChange={(e) =>
                       setTestLead({ ...testLead, time_frame: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  />
+                    required
+                  >
+                    <option value="">Select...</option>
+                    <option value="0-3 months">0-3 months</option>
+                    <option value="3-6 months">3-6 months</option>
+                    <option value="6-12 months">6-12 months</option>
+                    <option value="12+ months">12+ months</option>
+                  </select>
                 </div>
 
+                {/* State */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     State
@@ -401,10 +440,13 @@ export default function ScoringConfigPage() {
                     onChange={(e) =>
                       setTestLead({ ...testLead, state: e.target.value })
                     }
+                    placeholder="e.g., TX"
+                    maxLength="2"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                   />
                 </div>
 
+                {/* Zip Code */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Zip Code
@@ -415,6 +457,8 @@ export default function ScoringConfigPage() {
                     onChange={(e) =>
                       setTestLead({ ...testLead, zip_code: e.target.value })
                     }
+                    placeholder="e.g., 75001"
+                    maxLength="5"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                   />
                 </div>
@@ -440,7 +484,15 @@ export default function ScoringConfigPage() {
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={handleTestLead}
-                  disabled={isLoading || !testLead.first_name || !testLead.email}
+                  disabled={
+                    isLoading ||
+                    !testLead.first_name ||
+                    !testLead.last_name ||
+                    !testLead.email ||
+                    !testLead.phone ||
+                    !testLead.liquid_capital ||
+                    !testLead.time_frame
+                  }
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
@@ -458,40 +510,178 @@ export default function ScoringConfigPage() {
               </div>
             </div>
 
-            {/* Results or error placeholder to use state variables */}
+            {/* Loading State */}
+            {isLoading && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Processing Lead...
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span className="text-gray-600">Validating lead data...</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Loader2 className="h-5 w-5 text-orange-500 mr-3 animate-spin" />
+                    <span className="text-gray-600">Enriching profile...</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-5 w-5 mr-3 rounded-full bg-gray-200"></div>
+                    <span className="text-gray-400">AI scoring in progress...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results Display */}
+            {testResults && !isLoading && (
+              <div className="space-y-6 animate-fadeIn">
+                {/* Profile Card */}
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-2xl font-bold text-orange-600">
+                        {(testResults.first_name || testResults.lead_data?.first_name || 'U')[0]}
+                        {(testResults.last_name || testResults.lead_data?.last_name || 'U')[0]}
+                      </div>
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold text-white">
+                          {testResults.first_name || testResults.lead_data?.first_name || 'Unknown'} {testResults.last_name || testResults.lead_data?.last_name || ''}
+                        </h2>
+                        <p className="text-orange-100">
+                          {testResults.current_title || testResults.company || 'Professional'}
+                        </p>
+                        <p className="text-orange-100 text-sm">
+                          {testResults.state} {testResults.zip_code}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <div
+                          className={`inline-flex items-center px-4 py-2 rounded-full text-lg font-bold bg-white ${
+                            testResults.lead_tier === 'Hot'
+                              ? 'text-red-600'
+                              : testResults.lead_tier === 'Warm'
+                              ? 'text-yellow-600'
+                              : 'text-blue-600'
+                          }`}
+                        >
+                          {testResults.ai_score || 0}/100
+                        </div>
+                        <p className="text-white text-sm mt-1">
+                          {testResults.lead_tier} Lead
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Qualification */}
+                <div className="bg-white shadow rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Financial Qualification
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600">Liquid Capital</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        ${parseInt(testResults.liquid_capital || 0).toLocaleString()}
+                      </p>
+                      <p
+                        className={`text-sm mt-1 ${
+                          testResults.liquid_capital_met
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {testResults.liquid_capital_met
+                          ? '✅ Qualified'
+                          : '❌ Below minimum'}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600">Net Worth</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        ${parseInt(testResults.net_worth || 0).toLocaleString()}
+                      </p>
+                      <p
+                        className={`text-sm mt-1 ${
+                          testResults.net_worth_met
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {testResults.net_worth_met
+                          ? '✅ Qualified'
+                          : '❌ Below minimum'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Insights */}
+                {testResults.rationale && testResults.rationale.length > 0 && (
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      AI Analysis
+                    </h3>
+                    <div className="space-y-2">
+                      {testResults.rationale.map((item, index) => (
+                        <div key={index} className="flex items-start">
+                          <div className="flex-shrink-0 h-5 w-5 text-orange-600 mt-0.5">
+                            <CheckCircle className="h-5 w-5" />
+                          </div>
+                          <p className="ml-3 text-sm text-gray-700">{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reset Button */}
+                <div className="text-center">
+                  <button
+                    onClick={() => {
+                      setTestResults(null);
+                      setTestLead({
+                        first_name: '',
+                        last_name: '',
+                        email: '',
+                        phone: '',
+                        company: '',
+                        liquid_capital: '',
+                        net_worth: '',
+                        time_frame: '',
+                        state: '',
+                        zip_code: '',
+                        message: ''
+                      });
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <RotateCw className="h-4 w-4 mr-2" />
+                    Test Another Lead
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error Display */}
             {error && (
-              <div className="text-red-600">{error}</div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex">
+                  <XCircle className="h-5 w-5 text-red-400" />
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Error Processing Lead
+                    </h3>
+                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              </div>
             )}
-            {testResults && (
-              <pre className="bg-white shadow rounded-lg p-4 overflow-x-auto">
-                {JSON.stringify(testResults, null, 2)}
-              </pre>
-            )}
-
-            {/* Hidden icons to satisfy linter for unused imports */}
-            <div className="hidden">
-              <Users />
-              <Building2 />
-              <DollarSign />
-              <Calendar />
-              <MapPin />
-              <CheckCircle />
-              <XCircle />
-              <AlertCircle />
-              <ChevronDown />
-              <ChevronUp />
-              <RotateCw />
-              <Briefcase />
-              <Mail />
-              <Phone />
-              <User />
-            </div>
-
-            {expandedSections && null}
           </div>
         )}
       </div>
     </div>
   );
 }
-
