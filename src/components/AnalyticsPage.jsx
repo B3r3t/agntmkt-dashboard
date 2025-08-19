@@ -324,7 +324,7 @@ export default function AnalyticsPage() {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-scan"></div>
             <div className="relative z-10">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Lead Sources</h2>
@@ -346,7 +346,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-scan"></div>
             <div className="relative z-10">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Conversion Trends</h2>
