@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { supabase } from '../lib/supabase';
 import {
   Users,
   Building2,
@@ -99,17 +98,20 @@ export default function ScoringConfigPage() {
     setError(null);
     setTestResults(null);
     try {
-      const { data, error: funcError } = await supabase.functions.invoke(
-        'test-lead-scoring',
-        {
-          body: {
-            organization_id: organization?.id,
-            lead: testLead
-          }
-        }
-      );
+      const response = await fetch('/api/test-lead-scoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organization_id: organization?.id,
+          lead: testLead
+        })
+      });
 
-      if (funcError) throw funcError;
+      if (!response.ok) {
+        throw new Error('Failed to test lead scoring');
+      }
+
+      const data = await response.json();
 
       setTestResults(data);
       setExpandedSections({
