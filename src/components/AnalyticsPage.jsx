@@ -174,11 +174,12 @@ export default function AnalyticsPage() {
         
         {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-blue-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Users className="h-6 w-6 text-blue-400" />
+                  <Users className="h-8 w-8 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -201,11 +202,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-green-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Target className="h-6 w-6 text-green-400" />
+                  <Target className="h-8 w-8 text-green-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -217,7 +219,7 @@ export default function AnalyticsPage() {
                         {metrics.qualifiedLeads.toLocaleString()}
                       </div>
                       <span className="ml-2 text-sm text-gray-600">
-                        {metrics.totalLeads > 0 
+                        {metrics.totalLeads > 0
                           ? `${((metrics.qualifiedLeads / metrics.totalLeads) * 100).toFixed(1)}%`
                           : '0%'}
                       </span>
@@ -228,11 +230,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-purple-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <MessageSquare className="h-6 w-6 text-purple-400" />
+                  <MessageSquare className="h-8 w-8 text-purple-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -253,11 +256,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-orange-400" />
+                  <TrendingUp className="h-8 w-8 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -273,11 +277,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-indigo-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <BarChart3 className="h-6 w-6 text-indigo-400" />
+                  <BarChart3 className="h-8 w-8 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -285,7 +290,7 @@ export default function AnalyticsPage() {
                       Conversion Rate
                     </dt>
                     <dd className="text-2xl font-semibold text-gray-900">
-                      {metrics.totalLeads > 0 
+                      {metrics.totalLeads > 0
                         ? `${((metrics.qualifiedLeads / metrics.totalLeads) * 100).toFixed(1)}%`
                         : '0%'}
                     </dd>
@@ -295,11 +300,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-400 to-teal-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Calendar className="h-6 w-6 text-teal-400" />
+                  <Calendar className="h-8 w-8 text-teal-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
@@ -318,42 +324,48 @@ export default function AnalyticsPage() {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Lead Sources</h2>
-            {chartData.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Recent Performance:</p>
-                {chartData.slice(0, 3).map((data, index) => (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{data.date}:</span>
-                    <span className="font-medium">{data.totalLeads} leads</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600">
-                Source breakdown will appear here as data accumulates.
-              </p>
-            )}
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-scan"></div>
+            <div className="relative z-10">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Lead Sources</h2>
+              {chartData.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">Recent Performance:</p>
+                  {chartData.slice(0, 3).map((data, index) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{data.date}:</span>
+                      <span className="font-medium">{data.totalLeads} leads</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600">
+                  Source breakdown will appear here as data accumulates.
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Conversion Trends</h2>
-            {chartData.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Recent Conversions:</p>
-                {chartData.slice(0, 3).map((data, index) => (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{data.date}:</span>
-                    <span className="font-medium">{data.qualifiedLeads} qualified</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600">
-                Trend charts will appear here as data accumulates.
-              </p>
-            )}
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-scan"></div>
+            <div className="relative z-10">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Conversion Trends</h2>
+              {chartData.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">Recent Conversions:</p>
+                  {chartData.slice(0, 3).map((data, index) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{data.date}:</span>
+                      <span className="font-medium">{data.qualifiedLeads} qualified</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600">
+                  Trend charts will appear here as data accumulates.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

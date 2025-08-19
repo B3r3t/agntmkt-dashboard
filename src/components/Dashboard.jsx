@@ -254,12 +254,12 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Leads Section */}
-        <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900">Recent Leads</h2>
-            <Link 
-              to="/leads" 
-              className="text-sm font-medium text-blue-600 hover:text-blue-500 flex items-center"
+        <div className="mt-8 bg-white/95 backdrop-blur-sm shadow-lg overflow-hidden rounded-3xl border border-white/80 hover:shadow-xl transition-all duration-300">
+          <div className="px-6 py-6 sm:px-8 flex justify-between items-center border-b border-gray-100/50">
+            <h2 className="text-xl font-semibold text-gray-900">Recent Leads</h2>
+            <Link
+              to="/leads"
+              className="text-sm font-medium text-orange-600 hover:text-orange-500 flex items-center hover:scale-105 transition-all duration-200"
             >
               View all
               <ArrowRight className="ml-1 h-4 w-4" />
@@ -268,7 +268,7 @@ export default function Dashboard() {
           <ul className="divide-y divide-gray-200">
             {recentLeads.length > 0 ? (
               recentLeads.map((lead) => (
-                <li key={lead.id} className="px-4 py-4 sm:px-6">
+                <li key={lead.id} className="px-6 py-6 sm:px-8 hover:bg-orange-400/5 hover:translate-x-2 transition-all duration-300 rounded-xl mx-2">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
@@ -278,7 +278,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center space-x-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        lead.status === 'qualified' 
+                        lead.status === 'qualified'
                           ? 'bg-green-100 text-green-800'
                           : lead.status === 'contacted'
                           ? 'bg-blue-100 text-blue-800'
