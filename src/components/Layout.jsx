@@ -4,6 +4,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Menu, X, ArrowLeft, AlertCircle } from 'lucide-react';
+import BackgroundDecoration from './BackgroundDecoration';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -48,7 +49,8 @@ export default function Layout() {
   const impersonatedOrgName = localStorage.getItem('impersonated_org_name');
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative">
+      <BackgroundDecoration />
       {/* Show Return to Admin banner if impersonating */}
       {isImpersonating && (
         <div className="bg-yellow-50 border-b border-yellow-200">
@@ -73,8 +75,8 @@ export default function Layout() {
       )}
 
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b" style={{ 
-        borderBottomColor: branding?.primary_color ? `${branding.primary_color}20` : undefined 
+      <nav className="bg-white/90 backdrop-blur-sm shadow-lg border-b border-white/80 relative z-10" style={{
+        borderBottomColor: branding?.primary_color ? `${branding.primary_color}20` : undefined
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
