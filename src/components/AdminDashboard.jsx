@@ -587,7 +587,7 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-blue-500 animate-shimmer"></div>
           <div className="relative z-10">
             <div className="flex items-center">
@@ -600,7 +600,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-green-500 animate-shimmer"></div>
           <div className="relative z-10">
             <div className="flex items-center">
@@ -615,7 +615,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-purple-500 animate-shimmer"></div>
           <div className="relative z-10">
             <div className="flex items-center">
@@ -630,7 +630,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500 animate-shimmer"></div>
           <div className="relative z-10">
             <div className="flex items-center">
@@ -693,7 +693,7 @@ export default function AdminDashboard() {
         {/* Organizations List */}
         <div className="divide-y divide-gray-200">
           {filteredOrgs.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-4 sm:p-8 text-center text-gray-500">
               No organizations found
             </div>
           ) : (
