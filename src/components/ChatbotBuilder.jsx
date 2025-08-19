@@ -20,7 +20,7 @@ export default function ChatbotBuilder() {
           </div>
         </div>
 
-        <div className="mt-8 bg-white shadow rounded-lg p-6">
+        <div className="mt-8 bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 p-6">
           {chatbots.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
