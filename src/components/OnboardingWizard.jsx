@@ -8,7 +8,7 @@ export default function OnboardingWizard() {
       <div className="px-4 py-6 sm:px-0">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Welcome! Let's Get Started</h1>
         
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 p-6">
           <div className="mb-8">
             <div className="flex items-center">
               <div className={`flex-1 ${step >= 1 ? 'bg-orange-600' : 'bg-gray-200'} h-2 rounded`}></div>

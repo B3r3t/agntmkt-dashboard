@@ -33,5 +33,76 @@
   }
   body {
     @apply bg-background text-foreground;
+    background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 50%, #e2e8f0 100%);
+    min-height: 100vh;
+  }
+}
+
+/* ADD THESE NEW ANIMATIONS AFTER THE EXISTING CSS */
+@layer utilities {
+  .animate-float {
+    animation: float 25s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 4s linear infinite;
+    background-size: 200% 100%;
+  }
+  
+  .animate-pulse-dot {
+    animation: pulse-dot 3s infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-sweep {
+    animation: sweep 8s infinite;
+  }
+  
+  .animate-scan {
+    animation: scan 5s infinite;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(40px, -30px) rotate(1deg); }
+  66% { transform: translate(-30px, 25px) rotate(-1deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.3); }
+}
+
+@keyframes glow {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@keyframes sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes scan {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Mobile performance optimization */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-shimmer,
+  .animate-sweep,
+  .animate-scan {
+    animation: none;
   }
 }
