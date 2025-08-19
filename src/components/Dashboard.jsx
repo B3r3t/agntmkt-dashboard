@@ -155,25 +155,32 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 relative z-[1]">
       <div className="px-4 py-6 sm:px-0">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome {userName}</h1>
-        <p className="mt-2 text-gray-600">Here's your business overview for today</p>
+        {/* Header Section with Glassmorphism */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 mb-8 border border-white/80 shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-full w-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-sweep"></div>
+          <div className="relative z-10">
+            <h1 className="text-3xl font-bold text-gray-900">Welcome {userName}</h1>
+            <p className="mt-2 text-gray-600">Here's your business overview for today</p>
+          </div>
+        </div>
 
         {/* Stats Grid */}
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Users className="h-6 w-6 text-gray-400" />
+                  <Users className="h-8 w-8 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
                       Total Leads
                     </dt>
-                    <dd className="text-2xl font-semibold text-gray-900">
+                    <dd className="text-3xl font-semibold text-gray-900">
                       {stats.totalLeads}
                     </dd>
                   </dl>
@@ -182,18 +189,19 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-green-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-green-400" />
+                  <TrendingUp className="h-8 w-8 text-green-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
                       New Today
                     </dt>
-                    <dd className="text-2xl font-semibold text-gray-900">
+                    <dd className="text-3xl font-semibold text-gray-900">
                       {stats.newToday}
                     </dd>
                   </dl>
@@ -202,18 +210,19 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-blue-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <MessageSquare className="h-6 w-6 text-blue-400" />
+                  <MessageSquare className="h-8 w-8 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
                       Active Chats
                     </dt>
-                    <dd className="text-2xl font-semibold text-gray-900">
+                    <dd className="text-3xl font-semibold text-gray-900">
                       {stats.activeChats}
                     </dd>
                   </dl>
@@ -222,18 +231,19 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500 animate-shimmer"></div>
+            <div className="relative z-10">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Target className="h-6 w-6 text-orange-400" />
+                  <Target className="h-8 w-8 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
                       Conversion
                     </dt>
-                    <dd className="text-2xl font-semibold text-gray-900">
+                    <dd className="text-3xl font-semibold text-gray-900">
                       {stats.conversionRate}%
                     </dd>
                   </dl>
