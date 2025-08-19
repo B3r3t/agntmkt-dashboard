@@ -255,7 +255,7 @@ export default function Dashboard() {
 
         {/* Recent Leads Section */}
         <div className="mt-8 bg-white/95 backdrop-blur-sm shadow-lg overflow-hidden rounded-3xl border border-white/80 hover:shadow-xl transition-all duration-300">
-          <div className="px-6 py-6 sm:px-8 flex justify-between items-center border-b border-gray-100/50">
+          <div className="px-6 py-6 sm:px-8 flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0 border-b border-gray-100/50">
             <h2 className="text-xl font-semibold text-gray-900">Recent Leads</h2>
             <Link
               to="/leads"
@@ -269,7 +269,7 @@ export default function Dashboard() {
             {recentLeads.length > 0 ? (
               recentLeads.map((lead) => (
                 <li key={lead.id} className="px-6 py-6 sm:px-8 hover:bg-orange-400/5 hover:translate-x-2 transition-all duration-300 rounded-xl mx-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
                         {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
