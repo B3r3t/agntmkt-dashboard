@@ -577,55 +577,70 @@ export default function AdminDashboard() {
       )}
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="mt-2 text-gray-600">Manage your clients, features, and system settings</p>
+      <div className="mb-8 bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-white/80 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-full w-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-sweep"></div>
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="mt-2 text-gray-600">Manage your clients, features, and system settings</p>
+        </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center">
-            <Users className="h-10 w-10 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Clients</p>
-              <p className="text-2xl font-bold text-gray-900">{organizations.length}</p>
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-blue-500 animate-shimmer"></div>
+          <div className="relative z-10">
+            <div className="flex items-center">
+              <Users className="h-12 w-12 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Clients</p>
+                <p className="text-3xl font-bold text-gray-900">{organizations.length}</p>
+              </div>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center">
-            <Activity className="h-10 w-10 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Clients</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {organizations.filter(o => o.status === 'active').length}
-              </p>
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-green-500 animate-shimmer"></div>
+          <div className="relative z-10">
+            <div className="flex items-center">
+              <Activity className="h-12 w-12 text-green-600 group-hover:scale-110 transition-transform duration-300" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Active Clients</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {organizations.filter(o => o.status === 'active').length}
+                </p>
+              </div>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center">
-            <Building2 className="h-10 w-10 text-purple-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Leads</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {organizations.reduce((sum, org) => sum + (org.lead_count || 0), 0)}
-              </p>
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-purple-500 animate-shimmer"></div>
+          <div className="relative z-10">
+            <div className="flex items-center">
+              <Building2 className="h-12 w-12 text-purple-600 group-hover:scale-110 transition-transform duration-300" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Leads</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {organizations.reduce((sum, org) => sum + (org.lead_count || 0), 0)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center">
-            <Shield className="h-10 w-10 text-orange-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Chatbots</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {organizations.filter(o => o.features?.chatbots).length}
-              </p>
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-3 transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500 animate-shimmer"></div>
+          <div className="relative z-10">
+            <div className="flex items-center">
+              <Shield className="h-12 w-12 text-orange-600 group-hover:scale-110 transition-transform duration-300" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Active Chatbots</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {organizations.filter(o => o.features?.chatbots).length}
+                </p>
+              </div>
             </div>
           </div>
         </div>
