@@ -134,7 +134,7 @@ export default function ScoringConfigPage() {
       }
 
       const data = await response.json();
-      const leadData = data.lead || data;
+      const leadData = Array.isArray(data) ? data[0] : (data.lead || data);
       setTestResults(leadData);
     } catch (err) {
       console.error('Error testing lead:', err);
@@ -550,153 +550,157 @@ export default function ScoringConfigPage() {
                 </div>
               )}
 
-              {/* Enhanced Profile Card - Works with existing data */}
+              {/* Enhanced Profile Card with Score */}
               {testResults && (
                 <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                  <div
-                    className="relative p-6"
-                    style={{
-                      background: 'linear-gradient(135deg, #3d3b3a 0%, #525050 100%)'
-                    }}
-                  >
-                    <div className="relative">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-4">
-                          {/* Simple avatar with initials */}
-                          <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/20 shadow-lg bg-white">
-                            <div className="w-full h-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                              <span className="text-white text-2xl font-bold">
-                                {(testResults.first_name || 'U')[0].toUpperCase()}
-                                {(testResults.last_name || 'K')[0].toUpperCase()}
+                  <div className="bg-gradient-to-br from-gray-800 to-gray-700 p-6 relative">
+                    <div
+                      className="absolute inset-0 opacity-10"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                      }}
+                    />
+
+                    <div className="relative flex items-start justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-20 h-20 rounded-full border-4 border-white/20 shadow-lg overflow-hidden bg-white">
+                          {testResults.linkedin_profile_picture ? (
+                            <img 
+                              src={testResults.linkedin_profile_picture} 
+                              alt={`${testResults.first_name} ${testResults.last_name}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                              <span className="text-white text-3xl font-bold">
+                                {(testResults.first_name || 'W')[0].toUpperCase()}
+                                {(testResults.last_name || 'F')[0].toUpperCase()}
                               </span>
                             </div>
-                          </div>
-
-                          {/* Name and basic details */}
-                          <div className="text-white flex-1">
-                            <h2 className="text-2xl font-bold mb-1">
-                              {testResults.first_name || 'Unknown'} {testResults.last_name || 'Lead'}
-                            </h2>
-                            {testResults.email && (
-                              <p className="text-gray-300 text-sm mb-1">{testResults.email}</p>
+                          )}
+                        </div>
+                        
+                        <div className="text-white flex-1">
+                          <h2 className="text-2xl font-bold">
+                            {testResults.first_name} {testResults.last_name}
+                          </h2>
+                          {testResults.headline && (
+                            <p className="text-gray-300 text-sm mt-1 max-w-md line-clamp-2">{testResults.headline}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 text-gray-400 text-sm">
+                            {testResults.current_company && (
+                              <span className="flex items-center gap-1">
+                                <Building className="h-4 w-4" />
+                                {testResults.current_company}
+                              </span>
                             )}
-                            <div className="flex items-center gap-4 text-xs text-gray-400">
-                              {testResults.company && (
-                                <span className="flex items-center gap-1">
-                                  <Building className="h-3 w-3" />
-                                  {testResults.company}
-                                </span>
-                              )}
-                              {(testResults.state || testResults.zip_code) && (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {testResults.state} {testResults.zip_code}
-                                </span>
-                              )}
-                            </div>
+                            {testResults.location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                {testResults.location}
+                              </span>
+                            )}
                           </div>
                         </div>
-
-                        {/* Score Badge */}
-                        {(testResults.score || testResults.ai_score) && (
-                          <div className="flex flex-col items-center">
-                            <div className="bg-white rounded-2xl px-6 py-4 shadow-xl">
-                              <div className="text-center">
-                                <div className="text-4xl font-bold text-gray-900">
-                                  {testResults.score || testResults.ai_score}
-                                </div>
-                                <div className="mt-1">
-                                  <span
-                                    className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
-                                      (testResults.score || testResults.ai_score) >= 75
-                                        ? 'bg-red-100 text-red-700'
-                                        : (testResults.score || testResults.ai_score) >= 50
-                                        ? 'bg-yellow-100 text-yellow-700'
-                                        : 'bg-blue-100 text-blue-700'
-                                    }`}
-                                  >
-                                    {(testResults.score || testResults.ai_score) >= 75
-                                      ? 'Hot'
-                                      : (testResults.score || testResults.ai_score) >= 50
-                                      ? 'Warm'
-                                      : 'Cold'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
+                        
+                      {testResults.ai_score && (
+                        <div className="bg-white rounded-xl px-5 py-3 shadow-xl">
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-gray-900">
+                              {testResults.ai_score}
+                            </div>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full inline-block mt-1 ${
+                              testResults.lead_tier === 'Hot' ? 'bg-red-100 text-red-700' : 
+                              testResults.lead_tier === 'Warm' ? 'bg-yellow-100 text-yellow-700' : 
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {testResults.lead_tier}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                    
+                    {(testResults.connections || testResults.followers) && (
+                      <div className="flex gap-6 text-white/90 text-sm pt-4 mt-4 border-t border-white/20">
+                        <span>{testResults.connections?.toLocaleString()} connections</span>
+                        <span>{testResults.followers?.toLocaleString()} followers</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Enhanced Financial Card */}
-              {testResults && (testResults.liquid_capital || testResults.net_worth) && (
+              {/* Financial Qualification Card */}
+              {testResults && testResults.liquid_capital && (
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-5 shadow-md">
                   <div className="flex items-center mb-4">
                     <DollarSign className="h-5 w-5 text-green-600 mr-2" />
                     <h3 className="text-lg font-semibold text-gray-900">Financial Qualification</h3>
                   </div>
-
+                  
                   <div className="grid grid-cols-2 gap-4">
-                    {testResults.liquid_capital && (
-                      <div className="bg-white rounded-lg p-4 border border-green-100">
-                        <p className="text-xs text-gray-500 mb-1">Liquid Capital</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          ${parseInt(testResults.liquid_capital || 0).toLocaleString()}
-                        </p>
-                        <div className="flex items-center mt-2">
-                          {parseInt(testResults.liquid_capital) >= 150000 ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                              <span className="text-xs text-green-600 font-medium">Qualified</span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="h-4 w-4 text-red-500 mr-1" />
-                              <span className="text-xs text-red-600 font-medium">Below Minimum</span>
-                            </>
-                          )}
-                        </div>
+                    <div className="bg-white rounded-lg p-4 border border-green-100">
+                      <p className="text-xs text-gray-500 mb-1">Liquid Capital</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        ${(testResults.liquid_capital || 0).toLocaleString()}
+                      </p>
+                      <div className="flex items-center mt-2">
+                        {testResults.liquid_capital_met ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                            <span className="text-xs text-green-600 font-medium">Qualified</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4 text-red-500 mr-1" />
+                            <span className="text-xs text-red-600 font-medium">Below Minimum</span>
+                          </>
+                        )}
                       </div>
-                    )}
-
-                    {testResults.net_worth && (
-                      <div className="bg-white rounded-lg p-4 border border-green-100">
-                        <p className="text-xs text-gray-500 mb-1">Net Worth</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          ${parseInt(testResults.net_worth || 0).toLocaleString()}
-                        </p>
-                        <div className="flex items-center mt-2">
-                          {parseInt(testResults.net_worth) >= 300000 ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                              <span className="text-xs text-green-600 font-medium">Qualified</span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="h-4 w-4 text-red-500 mr-1" />
-                              <span className="text-xs text-red-600 font-medium">Below Minimum</span>
-                            </>
-                          )}
-                        </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border border-green-100">
+                      <p className="text-xs text-gray-500 mb-1">Net Worth</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        ${(testResults.net_worth || 0).toLocaleString()}
+                      </p>
+                      <div className="flex items-center mt-2">
+                        {testResults.net_worth_met ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                            <span className="text-xs text-green-600 font-medium">Qualified</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4 text-red-500 mr-1" />
+                            <span className="text-xs text-red-600 font-medium">Below Minimum</span>
+                          </>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
-
-                  {parseInt(testResults.liquid_capital) >= 150000 && parseInt(testResults.net_worth) >= 300000 && (
-                    <div className="mt-4 p-3 bg-green-100 rounded-lg text-sm text-green-700 text-center font-medium">
-                      <Trophy className="inline h-4 w-4 mr-2" />
-                      Exceeds both liquid capital and net worth minimums
+                  
+                  {testResults.financial_flag && (
+                    <div className={`mt-4 p-3 rounded-lg text-sm text-center font-medium ${
+                      testResults.financial_status === 'PASS' 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {testResults.financial_status === 'PASS' ? (
+                        <Trophy className="inline h-4 w-4 mr-2" />
+                      ) : (
+                        <Info className="inline h-4 w-4 mr-2" />
+                      )}
+                      {testResults.financial_flag}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Enhanced AI Analysis - Works with multiple formats */}
-              {testResults && (testResults.ai_analysis || testResults.ai_reasoning) && (
+              {/* AI Analysis Section */}
+              {testResults && (testResults.rationale || testResults.priority_traits) && (
                 <div className="bg-white shadow-lg rounded-lg overflow-hidden">
                   <div className="border-b border-gray-200 bg-gray-50 px-5 py-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -704,72 +708,77 @@ export default function ScoringConfigPage() {
                       AI Analysis
                     </h3>
                   </div>
-
-                  <div className="p-5">
-                    {/* Simple text reasoning */}
-                    {testResults.ai_reasoning && typeof testResults.ai_reasoning === 'string' && (
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                          {testResults.ai_reasoning}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Structured analysis if available */}
-                    {testResults.ai_analysis && typeof testResults.ai_analysis === 'object' && (
-                      <div className="space-y-5">
-                        {/* Key Strengths if available */}
-                        {testResults.ai_analysis.key_strengths && Array.isArray(testResults.ai_analysis.key_strengths) && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-3">Key Strengths</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {testResults.ai_analysis.key_strengths.map((strength, index) => (
-                                <div
-                                  key={index}
-                                  className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3"
-                                >
-                                  <div className="flex items-start">
-                                    <CheckCircle className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                                    <span className="text-sm text-gray-700">{strength}</span>
-                                  </div>
-                                </div>
-                              ))}
+                
+                <div className="p-5 space-y-5">
+                  {testResults.priority_traits && testResults.priority_traits.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Key Strengths</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {testResults.priority_traits.map((trait, index) => (
+                          <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-start">
+                              <CheckCircle className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{trait}</span>
                             </div>
                           </div>
-                        )}
-
-                        {/* Observations if available */}
-                        {testResults.ai_analysis.observations && typeof testResults.ai_analysis.observations === 'object' && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-3">Detailed Observations</h4>
-                            <div className="space-y-3">
-                              {Object.entries(testResults.ai_analysis.observations).map(([category, observation]) => (
-                                <div key={category} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                  <div className="flex items-start">
-                                    <div className="flex-shrink-0 mr-3">
-                                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                                        <Info className="h-5 w-5 text-orange-600" />
-                                      </div>
-                                    </div>
-                                    <div className="flex-1">
-                                      <h5 className="text-sm font-semibold text-gray-900 capitalize mb-1">
-                                        {category.replace(/_/g, ' ')}
-                                      </h5>
-                                      <p className="text-sm text-gray-600 leading-relaxed">
-                                        {observation}
-                                      </p>
-                                    </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {testResults.rationale && testResults.rationale.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Detailed Analysis</h4>
+                      <div className="space-y-3">
+                        {testResults.rationale.map((item, index) => {
+                          const [category, ...rest] = item.split(':');
+                          const content = rest.join(':').trim();
+                          
+                          const getIcon = () => {
+                            const iconClass = "h-5 w-5";
+                            if (category.toLowerCase().includes('financial')) return <DollarSign className={`${iconClass} text-green-600`} />;
+                            if (category.toLowerCase().includes('leadership')) return <Award className={`${iconClass} text-purple-600`} />;
+                            if (category.toLowerCase().includes('market')) return <TrendingUp className={`${iconClass} text-blue-600`} />;
+                            if (category.toLowerCase().includes('experience')) return <Briefcase className={`${iconClass} text-orange-600`} />;
+                            if (category.toLowerCase().includes('risk')) return <AlertCircle className={`${iconClass} text-red-600`} />;
+                            return <Info className={`${iconClass} text-gray-600`} />;
+                          };
+                          
+                          const getBgColor = () => {
+                            if (category.toLowerCase().includes('financial')) return 'bg-green-100';
+                            if (category.toLowerCase().includes('leadership')) return 'bg-purple-100';
+                            if (category.toLowerCase().includes('market')) return 'bg-blue-100';
+                            if (category.toLowerCase().includes('experience')) return 'bg-orange-100';
+                            if (category.toLowerCase().includes('risk')) return 'bg-red-100';
+                            return 'bg-gray-100';
+                          };
+                          
+                          return (
+                            <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                              <div className="flex items-start">
+                                <div className="flex-shrink-0 mr-3">
+                                  <div className={`w-10 h-10 ${getBgColor()} rounded-lg flex items-center justify-center`}>
+                                    {getIcon()}
                                   </div>
                                 </div>
-                              ))}
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-gray-900 mb-1">
+                                    {category}
+                                  </h5>
+                                  <p className="text-sm text-gray-600 leading-relaxed">
+                                    {content}
+                                  </p>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
               {/* Enhanced Next Steps */}
               {testResults && testResults.next_steps && (
