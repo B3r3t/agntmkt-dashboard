@@ -4,20 +4,12 @@ import {
   Users,
   Building2,
   DollarSign,
-  Calendar,
   MapPin,
   Loader2,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Zap,
-  ChevronDown,
-  ChevronUp,
-  RotateCw,
-  Briefcase,
-  Mail,
-  Phone,
-  User
+  Zap
 } from 'lucide-react';
 
 export default function ScoringConfigPage() {
@@ -241,446 +233,510 @@ export default function ScoringConfigPage() {
               </button>
             </div>
           </div>
+        
         ) : (
-          // New test scoring content
-          <div className="space-y-6">
-            {/* Test Lead Form */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-gray-900">
-                  Test Lead Scoring
-                </h2>
+          // New test scoring content with side-by-side layout
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* LEFT SIDE - Test Form */}
+            <div className="w-full lg:w-2/5">
+              <div className="bg-white shadow rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-medium text-gray-900">
+                    Test Lead Scoring
+                  </h2>
 
-                {/* Quick Fill Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setTestLead(scenarios.hot)}
-                    className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200"
-                  >
-                    🔥 Hot Lead
-                  </button>
-                  <button
-                    onClick={() => setTestLead(scenarios.warm)}
-                    className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
-                  >
-                    🟡 Warm Lead
-                  </button>
-                  <button
-                    onClick={() => setTestLead(scenarios.cold)}
-                    className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                  >
-                    ❄️ Cold Lead
-                  </button>
-                  <button
-                    onClick={() =>
-                      setTestLead({
-                        first_name: '',
-                        last_name: '',
-                        email: '',
-                        phone: '',
-                        company: '',
-                        liquid_capital: '',
-                        net_worth: '',
-                        time_frame: '',
-                        state: '',
-                        zip_code: '',
-                        message: ''
-                      })
-                    }
-                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {/* Form Fields Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* First Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={testLead.first_name}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, first_name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                    required
-                  />
+                  {/* Quick Fill Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setTestLead(scenarios.hot)}
+                      className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                    >
+                      🔥 Hot Lead
+                    </button>
+                    <button
+                      onClick={() => setTestLead(scenarios.warm)}
+                      className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
+                    >
+                      🟡 Warm Lead
+                    </button>
+                    <button
+                      onClick={() => setTestLead(scenarios.cold)}
+                      className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                    >
+                      ❄️ Cold Lead
+                    </button>
+                    <button
+                      onClick={() =>
+                        setTestLead({
+                          first_name: '',
+                          last_name: '',
+                          email: '',
+                          phone: '',
+                          company: '',
+                          liquid_capital: '',
+                          net_worth: '',
+                          time_frame: '',
+                          state: '',
+                          zip_code: '',
+                          message: ''
+                        })
+                      }
+                      className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
 
-                {/* Last Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={testLead.last_name}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, last_name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                    required
-                  />
+                {/* Form Fields */}
+                <div className="space-y-3">
+                  {/* Name Row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={testLead.first_name}
+                        onChange={(e) =>
+                          setTestLead({ ...testLead, first_name: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={testLead.last_name}
+                        onChange={(e) =>
+                          setTestLead({ ...testLead, last_name: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={testLead.email}
+                      onChange={(e) =>
+                        setTestLead({ ...testLead, email: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone *
+                    </label>
+                    <input
+                      type="tel"
+                      value={testLead.phone}
+                      onChange={(e) =>
+                        setTestLead({ ...testLead, phone: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Company */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Company
+                    </label>
+                    <input
+                      type="text"
+                      value={testLead.company}
+                      onChange={(e) =>
+                        setTestLead({ ...testLead, company: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+
+                  {/* Financial Row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Liquid Capital *
+                      </label>
+                      <input
+                        type="text"
+                        value={testLead.liquid_capital}
+                        onChange={(e) =>
+                          setTestLead({ ...testLead, liquid_capital: e.target.value })
+                        }
+                        placeholder="e.g., 250000"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Net Worth
+                      </label>
+                      <input
+                        type="text"
+                        value={testLead.net_worth}
+                        onChange={(e) =>
+                          setTestLead({ ...testLead, net_worth: e.target.value })
+                        }
+                        placeholder="e.g., 1000000"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Timeline */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Timeline *
+                    </label>
+                    <select
+                      value={testLead.time_frame}
+                      onChange={(e) =>
+                        setTestLead({ ...testLead, time_frame: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                      required
+                    >
+                      <option value="">Select...</option>
+                      <option value="0-3 months">0-3 months</option>
+                      <option value="3-6 months">3-6 months</option>
+                      <option value="6-12 months">6-12 months</option>
+                      <option value="12+ months">12+ months</option>
+                    </select>
+                  </div>
+
+                  {/* Location Row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        value={testLead.state}
+                        onChange={(e) =>
+                          setTestLead({ ...testLead, state: e.target.value })
+                        }
+                        placeholder="e.g., TX"
+                        maxLength="2"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Zip Code
+                      </label>
+                      <input
+                        type="text"
+                        value={testLead.zip_code}
+                        onChange={(e) =>
+                          setTestLead({ ...testLead, zip_code: e.target.value })
+                        }
+                        placeholder="e.g., 75001"
+                        maxLength="5"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Message */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Message / Background
+                    </label>
+                    <textarea
+                      value={testLead.message}
+                      onChange={(e) =>
+                        setTestLead({ ...testLead, message: e.target.value })
+                      }
+                      rows="3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                      placeholder="Additional context about the lead..."
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={handleTestLead}
+                      disabled={
+                        isLoading ||
+                        !testLead.first_name ||
+                        !testLead.last_name ||
+                        !testLead.email ||
+                        !testLead.phone ||
+                        !testLead.liquid_capital ||
+                        !testLead.time_frame
+                      }
+                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-4 w-4 mr-2" />
+                          Test Lead Scoring
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    value={testLead.email}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, email: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                    required
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    value={testLead.phone}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, phone: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                    required
-                  />
-                </div>
-
-                {/* Company */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    value={testLead.company}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, company: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  />
-                </div>
-
-                {/* Liquid Capital */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Liquid Capital *
-                  </label>
-                  <input
-                    type="text"
-                    value={testLead.liquid_capital}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, liquid_capital: e.target.value })
-                    }
-                    placeholder="e.g., 250000"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                    required
-                  />
-                </div>
-
-                {/* Net Worth */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Net Worth
-                  </label>
-                  <input
-                    type="text"
-                    value={testLead.net_worth}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, net_worth: e.target.value })
-                    }
-                    placeholder="e.g., 1000000"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  />
-                </div>
-
-                {/* Timeline - DROPDOWN */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Timeline *
-                  </label>
-                  <select
-                    value={testLead.time_frame}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, time_frame: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                    required
-                  >
-                    <option value="">Select...</option>
-                    <option value="0-3 months">0-3 months</option>
-                    <option value="3-6 months">3-6 months</option>
-                    <option value="6-12 months">6-12 months</option>
-                    <option value="12+ months">12+ months</option>
-                  </select>
-                </div>
-
-                {/* State */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    value={testLead.state}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, state: e.target.value })
-                    }
-                    placeholder="e.g., TX"
-                    maxLength="2"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  />
-                </div>
-
-                {/* Zip Code */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Zip Code
-                  </label>
-                  <input
-                    type="text"
-                    value={testLead.zip_code}
-                    onChange={(e) =>
-                      setTestLead({ ...testLead, zip_code: e.target.value })
-                    }
-                    placeholder="e.g., 75001"
-                    maxLength="5"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  />
-                </div>
-              </div>
-
-              {/* Message Field - Full Width */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Message / Background
-                </label>
-                <textarea
-                  value={testLead.message}
-                  onChange={(e) =>
-                    setTestLead({ ...testLead, message: e.target.value })
-                  }
-                  rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="Additional context about the lead..."
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={handleTestLead}
-                  disabled={
-                    isLoading ||
-                    !testLead.first_name ||
-                    !testLead.last_name ||
-                    !testLead.email ||
-                    !testLead.phone ||
-                    !testLead.liquid_capital ||
-                    !testLead.time_frame
-                  }
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4 mr-2" />
-                      Test Lead Scoring
-                    </>
-                  )}
-                </button>
               </div>
             </div>
 
-            {/* Loading State */}
-            {isLoading && (
-              <div className="bg-white shadow rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Processing Lead...
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-600">Validating lead data...</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Loader2 className="h-5 w-5 text-orange-500 mr-3 animate-spin" />
-                    <span className="text-gray-600">Enriching profile...</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="h-5 w-5 mr-3 rounded-full bg-gray-200"></div>
-                    <span className="text-gray-400">AI scoring in progress...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Results Display */}
-            {testResults && !isLoading && (
-              <div className="space-y-6 animate-fadeIn">
-                {/* Profile Card */}
-                <div className="bg-white shadow rounded-lg overflow-hidden">
-                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-2xl font-bold text-orange-600">
-                        {(testResults.first_name || testResults.lead_data?.first_name || 'U')[0]}
-                        {(testResults.last_name || testResults.lead_data?.last_name || 'U')[0]}
-                      </div>
-                      <div className="flex-1">
-                        <h2 className="text-2xl font-bold text-white">
-                          {testResults.first_name || testResults.lead_data?.first_name || 'Unknown'} {testResults.last_name || testResults.lead_data?.last_name || ''}
-                        </h2>
-                        <p className="text-orange-100">
-                          {testResults.current_title || testResults.company || 'Professional'}
-                        </p>
-                        <p className="text-orange-100 text-sm">
-                          {testResults.state} {testResults.zip_code}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <div
-                          className={`inline-flex items-center px-4 py-2 rounded-full text-lg font-bold bg-white ${
-                            testResults.lead_tier === 'Hot'
-                              ? 'text-red-600'
-                              : testResults.lead_tier === 'Warm'
-                              ? 'text-yellow-600'
-                              : 'text-blue-600'
-                          }`}
-                        >
-                          {testResults.ai_score || 0}/100
-                        </div>
-                        <p className="text-white text-sm mt-1">
-                          {testResults.lead_tier} Lead
-                        </p>
-                      </div>
+            {/* RIGHT SIDE - Results */}
+            <div className="w-full lg:w-3/5">
+              {/* Error State */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-red-800">Error Processing Lead</h4>
+                      <p className="text-sm text-red-600 mt-1">{error}</p>
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* Financial Qualification */}
+              {/* Loading State */}
+              {isLoading && (
                 <div className="bg-white shadow rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Financial Qualification
+                    Processing Lead...
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600">Liquid Capital</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        ${parseInt(testResults.liquid_capital || 0).toLocaleString()}
-                      </p>
-                      <p
-                        className={`text-sm mt-1 ${
-                          testResults.liquid_capital_met
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {testResults.liquid_capital_met
-                          ? '✅ Qualified'
-                          : '❌ Below minimum'}
-                      </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-600">Validating lead data...</span>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600">Net Worth</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        ${parseInt(testResults.net_worth || 0).toLocaleString()}
-                      </p>
-                      <p
-                        className={`text-sm mt-1 ${
-                          testResults.net_worth_met
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {testResults.net_worth_met
-                          ? '✅ Qualified'
-                          : '❌ Below minimum'}
-                      </p>
+                    <div className="flex items-center">
+                      <Loader2 className="h-5 w-5 text-orange-500 mr-3 animate-spin" />
+                      <span className="text-gray-600">Enriching profile...</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="h-5 w-5 mr-3 rounded-full bg-gray-200"></div>
+                      <span className="text-gray-400">AI scoring in progress...</span>
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* AI Insights */}
-                {testResults.rationale && testResults.rationale.length > 0 && (
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      AI Analysis
-                    </h3>
-                    <div className="space-y-2">
-                      {testResults.rationale.map((item, index) => (
-                        <div key={index} className="flex items-start">
-                          <div className="flex-shrink-0 h-5 w-5 text-orange-600 mt-0.5">
-                            <CheckCircle className="h-5 w-5" />
+              {/* Results Display */}
+              {testResults && !isLoading && (
+                <div className="space-y-4 animate-fadeIn">
+                  {/* LinkedIn-style Profile Card */}
+                  <div className="bg-white shadow rounded-lg overflow-hidden">
+                    {/* Header Background */}
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 h-24"></div>
+                    
+                    {/* Profile Content */}
+                    <div className="px-6 pb-6 -mt-12">
+                      <div className="flex items-start space-x-4">
+                        {/* Profile Picture - SIMPLE VERSION */}
+                        <div className="flex-shrink-0">
+                          <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
+                            {(testResults.first_name || 'U')[0]}{(testResults.last_name || 'U')[0]}
                           </div>
-                          <p className="ml-3 text-sm text-gray-700">{item}</p>
                         </div>
-                      ))}
+                        
+                        {/* Name and Details */}
+                        <div className="flex-grow pt-4">
+                          <h2 className="text-2xl font-bold text-gray-900">
+                            {testResults.first_name || 'Unknown'} {testResults.last_name || 'Lead'}
+                          </h2>
+                          {testResults.headline && (
+                            <p className="text-gray-600 mt-1 text-sm">{testResults.headline}</p>
+                          )}
+                          <div className="flex flex-wrap items-center mt-2 gap-3 text-sm text-gray-500">
+                            {testResults.current_company && (
+                              <span className="flex items-center">
+                                <Building2 className="h-4 w-4 mr-1" />
+                                {testResults.current_company}
+                              </span>
+                            )}
+                            {testResults.location && (
+                              <span className="flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                {testResults.location}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Network Stats */}
+                          {(testResults.connections || testResults.followers) && (
+                            <div className="flex items-center mt-3 space-x-4 text-sm">
+                              {testResults.connections && (
+                                <span className="text-blue-600 font-medium">
+                                  {testResults.connections.toLocaleString()} connections
+                                </span>
+                              )}
+                              {testResults.followers && (
+                                <span className="text-blue-600 font-medium">
+                                  {testResults.followers.toLocaleString()} followers
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Score Badge */}
+                        <div className="flex-shrink-0 pt-4">
+                          <div className="text-center">
+                            <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full text-white text-2xl font-bold
+                              ${testResults.ai_score >= 75 ? 'bg-green-500' :
+                                testResults.ai_score >= 55 ? 'bg-yellow-500' : 'bg-red-500'}`}>
+                              {testResults.ai_score || 0}
+                            </div>
+                            <p className="text-sm font-medium text-gray-600 mt-2">
+                              {testResults.lead_tier || 'Not Scored'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
 
-                {/* Reset Button */}
-                <div className="text-center">
-                  <button
-                    onClick={() => {
-                      setTestResults(null);
-                      setTestLead({
-                        first_name: '',
-                        last_name: '',
-                        email: '',
-                        phone: '',
-                        company: '',
-                        liquid_capital: '',
-                        net_worth: '',
-                        time_frame: '',
-                        state: '',
-                        zip_code: '',
-                        message: ''
-                      });
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    <RotateCw className="h-4 w-4 mr-2" />
-                    Test Another Lead
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Error Display */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex">
-                  <XCircle className="h-5 w-5 text-red-400" />
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">
-                      Error Processing Lead
+                  {/* Financial Qualification Card */}
+                  <div className="bg-white shadow rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+                      Financial Qualification
                     </h3>
-                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Liquid Capital</p>
+                        <p className="text-xl font-semibold text-gray-900">
+                          ${(parseInt(testResults.liquid_capital || 0)).toLocaleString()}
+                        </p>
+                        {testResults.liquid_capital_met !== undefined && (
+                          <span className={`inline-flex items-center text-xs mt-1 ${
+                            testResults.liquid_capital_met ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {testResults.liquid_capital_met ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Qualified
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Below minimum
+                              </>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-500">Net Worth</p>
+                        <p className="text-xl font-semibold text-gray-900">
+                          ${(parseInt(testResults.net_worth || 0)).toLocaleString()}
+                        </p>
+                        {testResults.net_worth_met !== undefined && (
+                          <span className={`inline-flex items-center text-xs mt-1 ${
+                            testResults.net_worth_met ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {testResults.net_worth_met ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Qualified
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Below minimum
+                              </>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {testResults.financial_flag && (
+                      <div className="mt-3 p-2 bg-yellow-50 rounded-md">
+                        <p className="text-sm text-yellow-800">{testResults.financial_flag}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI Analysis Card */}
+                  {testResults.rationale && (
+                    <div className="bg-white shadow rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Analysis</h3>
+                      
+                      {/* Priority Traits */}
+                      {testResults.priority_traits && testResults.priority_traits.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Key Strengths:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {testResults.priority_traits.map((trait, index) => (
+                              <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                {trait}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Rationale */}
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {testResults.rationale.map((item, index) => (
+                          <div key={index} className="flex items-start">
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                            <p className="text-sm text-gray-600">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Next Steps Card */}
+                  {testResults.next_steps && (
+                    <div className="bg-white shadow rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Recommended Next Steps</h3>
+                      <p className="text-sm text-gray-600">{testResults.next_steps}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!testResults && !isLoading && !error && (
+                <div className="bg-white shadow rounded-lg p-8 text-center">
+                  <div className="text-gray-400">
+                    <Users className="h-12 w-12 mx-auto mb-3" />
+                    <p className="text-lg font-medium">No Results Yet</p>
+                    <p className="text-sm mt-1">Fill out the form and click "Test Lead Scoring" to see results</p>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
+
       </div>
     </div>
   );
