@@ -9,9 +9,18 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Zap
+  Zap,
+  Brain,
+  Trophy,
+  Target,
+  Award,
+  TrendingUp,
+  Briefcase,
+  Info,
+  Clock,
+  Building,
+  Mail
 } from 'lucide-react';
-import LeadProfile from './LeadProfile';
 
 export default function ScoringConfigPage() {
   const { organization } = useOrganization();
@@ -237,278 +246,274 @@ export default function ScoringConfigPage() {
           </div>
         
         ) : (
-          // New test scoring content with side-by-side layout
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* LEFT SIDE - Test Form */}
+          // Enhanced container with better spacing
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* LEFT SIDE - Keep your existing form but wrap it better */}
             <div className="w-full lg:w-2/5">
-              <div className="bg-white shadow rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">
-                    Test Lead Scoring
-                  </h2>
+              <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-1">
+                <div className="bg-white rounded-lg shadow-lg">
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-medium text-gray-900">
+                        Test Lead Scoring
+                      </h2>
 
-                  {/* Quick Fill Buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setTestLead(scenarios.hot)}
-                      className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200"
-                    >
-                      🔥 Hot Lead
-                    </button>
-                    <button
-                      onClick={() => setTestLead(scenarios.warm)}
-                      className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
-                    >
-                      🟡 Warm Lead
-                    </button>
-                    <button
-                      onClick={() => setTestLead(scenarios.cold)}
-                      className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                    >
-                      ❄️ Cold Lead
-                    </button>
-                    <button
-                      onClick={() =>
-                        setTestLead({
-                          first_name: '',
-                          last_name: '',
-                          email: '',
-                          phone: '',
-                          company: '',
-                          liquid_capital: '',
-                          net_worth: '',
-                          time_frame: '',
-                          state: '',
-                          zip_code: '',
-                          message: ''
-                        })
-                      }
-                      className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-
-                {/* Form Fields */}
-                <div className="space-y-3">
-                  {/* Name Row */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        First Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={testLead.first_name}
-                        onChange={(e) =>
-                          setTestLead({ ...testLead, first_name: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                        required
-                      />
+                      {/* Quick Fill Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setTestLead(scenarios.hot)}
+                          className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                        >
+                          🔥 Hot Lead
+                        </button>
+                        <button
+                          onClick={() => setTestLead(scenarios.warm)}
+                          className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
+                        >
+                          🟡 Warm Lead
+                        </button>
+                        <button
+                          onClick={() => setTestLead(scenarios.cold)}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                        >
+                          ❄️ Cold Lead
+                        </button>
+                        <button
+                          onClick={() =>
+                            setTestLead({
+                              first_name: '',
+                              last_name: '',
+                              email: '',
+                              phone: '',
+                              company: '',
+                              liquid_capital: '',
+                              net_worth: '',
+                              time_frame: '',
+                              state: '',
+                              zip_code: '',
+                              message: ''
+                            })
+                          }
+                          className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={testLead.last_name}
-                        onChange={(e) =>
-                          setTestLead({ ...testLead, last_name: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                        required
-                      />
+
+                    {/* Form Fields */}
+                    <div className="space-y-3">
+                      {/* Name Row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            First Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={testLead.first_name}
+                            onChange={(e) =>
+                              setTestLead({ ...testLead, first_name: e.target.value })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Last Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={testLead.last_name}
+                            onChange={(e) =>
+                              setTestLead({ ...testLead, last_name: e.target.value })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Email */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email *
+                        </label>
+                        <input
+                          type="email"
+                          value={testLead.email}
+                          onChange={(e) =>
+                            setTestLead({ ...testLead, email: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                          required
+                        />
+                      </div>
+
+                      {/* Phone */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Phone *
+                        </label>
+                        <input
+                          type="tel"
+                          value={testLead.phone}
+                          onChange={(e) =>
+                            setTestLead({ ...testLead, phone: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                          required
+                        />
+                      </div>
+
+                      {/* Company */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Company
+                        </label>
+                        <input
+                          type="text"
+                          value={testLead.company}
+                          onChange={(e) =>
+                            setTestLead({ ...testLead, company: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                        />
+                      </div>
+
+                      {/* Financial Row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Liquid Capital *
+                          </label>
+                          <input
+                            type="text"
+                            value={testLead.liquid_capital}
+                            onChange={(e) =>
+                              setTestLead({ ...testLead, liquid_capital: e.target.value })
+                            }
+                            placeholder="e.g., 250000"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Net Worth
+                          </label>
+                          <input
+                            type="text"
+                            value={testLead.net_worth}
+                            onChange={(e) =>
+                              setTestLead({ ...testLead, net_worth: e.target.value })
+                            }
+                            placeholder="e.g., 1000000"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Timeline */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Timeline *
+                        </label>
+                        <select
+                          value={testLead.time_frame}
+                          onChange={(e) =>
+                            setTestLead({ ...testLead, time_frame: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                          required
+                        >
+                          <option value="">Select...</option>
+                          <option value="0-3 months">0-3 months</option>
+                          <option value="3-6 months">3-6 months</option>
+                          <option value="6-12 months">6-12 months</option>
+                          <option value="12+ months">12+ months</option>
+                        </select>
+                      </div>
+
+                      {/* Location Row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            State
+                          </label>
+                          <input
+                            type="text"
+                            value={testLead.state}
+                            onChange={(e) =>
+                              setTestLead({ ...testLead, state: e.target.value })
+                            }
+                            placeholder="e.g., TX"
+                            maxLength="2"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Zip Code
+                          </label>
+                          <input
+                            type="text"
+                            value={testLead.zip_code}
+                            onChange={(e) =>
+                              setTestLead({ ...testLead, zip_code: e.target.value })
+                            }
+                            placeholder="e.g., 75001"
+                            maxLength="5"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Message */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Message / Background
+                        </label>
+                        <textarea
+                          value={testLead.message}
+                          onChange={(e) =>
+                            setTestLead({ ...testLead, message: e.target.value })
+                          }
+                          rows="3"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                          placeholder="Additional context about the lead..."
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="mt-4">
+                        <button
+                          onClick={handleTestLead}
+                          disabled={isLoading}
+                          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium py-3 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Zap className="h-4 w-4 mr-2" />
+                              Test Lead Scoring
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      value={testLead.email}
-                      onChange={(e) =>
-                        setTestLead({ ...testLead, email: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                      required
-                    />
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone *
-                    </label>
-                    <input
-                      type="tel"
-                      value={testLead.phone}
-                      onChange={(e) =>
-                        setTestLead({ ...testLead, phone: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                      required
-                    />
-                  </div>
-
-                  {/* Company */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Company
-                    </label>
-                    <input
-                      type="text"
-                      value={testLead.company}
-                      onChange={(e) =>
-                        setTestLead({ ...testLead, company: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                    />
-                  </div>
-
-                  {/* Financial Row */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Liquid Capital *
-                      </label>
-                      <input
-                        type="text"
-                        value={testLead.liquid_capital}
-                        onChange={(e) =>
-                          setTestLead({ ...testLead, liquid_capital: e.target.value })
-                        }
-                        placeholder="e.g., 250000"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Net Worth
-                      </label>
-                      <input
-                        type="text"
-                        value={testLead.net_worth}
-                        onChange={(e) =>
-                          setTestLead({ ...testLead, net_worth: e.target.value })
-                        }
-                        placeholder="e.g., 1000000"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Timeline */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Timeline *
-                    </label>
-                    <select
-                      value={testLead.time_frame}
-                      onChange={(e) =>
-                        setTestLead({ ...testLead, time_frame: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                      required
-                    >
-                      <option value="">Select...</option>
-                      <option value="0-3 months">0-3 months</option>
-                      <option value="3-6 months">3-6 months</option>
-                      <option value="6-12 months">6-12 months</option>
-                      <option value="12+ months">12+ months</option>
-                    </select>
-                  </div>
-
-                  {/* Location Row */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        State
-                      </label>
-                      <input
-                        type="text"
-                        value={testLead.state}
-                        onChange={(e) =>
-                          setTestLead({ ...testLead, state: e.target.value })
-                        }
-                        placeholder="e.g., TX"
-                        maxLength="2"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Zip Code
-                      </label>
-                      <input
-                        type="text"
-                        value={testLead.zip_code}
-                        onChange={(e) =>
-                          setTestLead({ ...testLead, zip_code: e.target.value })
-                        }
-                        placeholder="e.g., 75001"
-                        maxLength="5"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Message */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Message / Background
-                    </label>
-                    <textarea
-                      value={testLead.message}
-                      onChange={(e) =>
-                        setTestLead({ ...testLead, message: e.target.value })
-                      }
-                      rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                      placeholder="Additional context about the lead..."
-                    />
-                  </div>
-
-                  {/* Submit Button */}
-                  <div className="mt-4">
-                    <button
-                      onClick={handleTestLead}
-                      disabled={
-                        isLoading ||
-                        !testLead.first_name ||
-                        !testLead.last_name ||
-                        !testLead.email ||
-                        !testLead.phone ||
-                        !testLead.liquid_capital ||
-                        !testLead.time_frame
-                      }
-                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="h-4 w-4 mr-2" />
-                          Test Lead Scoring
-                        </>
-                      )}
-                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* RIGHT SIDE - Results */}
-            <div className="w-full lg:w-3/5">
+            {/* RIGHT SIDE - Results with improved spacing */}
+            <div className="w-full lg:w-3/5 space-y-6">
               {/* Error State */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -545,113 +550,237 @@ export default function ScoringConfigPage() {
                 </div>
               )}
 
-              {/* Results Display */}
-              {testResults && !isLoading && (
-                <div className="space-y-4 animate-fadeIn">
-                  <LeadProfile lead={testResults} />
+              {/* Enhanced Profile Card - Works with existing data */}
+              {testResults && (
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                  <div
+                    className="relative p-6"
+                    style={{
+                      background: 'linear-gradient(135deg, #3d3b3a 0%, #525050 100%)'
+                    }}
+                  >
+                    <div className="relative">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-4">
+                          {/* Simple avatar with initials */}
+                          <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/20 shadow-lg bg-white">
+                            <div className="w-full h-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                              <span className="text-white text-2xl font-bold">
+                                {(testResults.first_name || 'U')[0].toUpperCase()}
+                                {(testResults.last_name || 'K')[0].toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
 
-                  {/* Financial Qualification Card */}
-                  <div className="bg-white shadow rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                      <DollarSign className="h-5 w-5 mr-2 text-green-600" />
-                      Financial Qualification
-                    </h3>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Liquid Capital</p>
-                        <p className="text-xl font-semibold text-gray-900">
-                          ${(parseInt(testResults.liquid_capital || 0)).toLocaleString()}
-                        </p>
-                        {testResults.liquid_capital_met !== undefined && (
-                          <span className={`inline-flex items-center text-xs mt-1 ${
-                            testResults.liquid_capital_met ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {testResults.liquid_capital_met ? (
-                              <>
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Qualified
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Below minimum
-                              </>
+                          {/* Name and basic details */}
+                          <div className="text-white flex-1">
+                            <h2 className="text-2xl font-bold mb-1">
+                              {testResults.first_name || 'Unknown'} {testResults.last_name || 'Lead'}
+                            </h2>
+                            {testResults.email && (
+                              <p className="text-gray-300 text-sm mb-1">{testResults.email}</p>
                             )}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <p className="text-sm text-gray-500">Net Worth</p>
-                        <p className="text-xl font-semibold text-gray-900">
-                          ${(parseInt(testResults.net_worth || 0)).toLocaleString()}
-                        </p>
-                        {testResults.net_worth_met !== undefined && (
-                          <span className={`inline-flex items-center text-xs mt-1 ${
-                            testResults.net_worth_met ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {testResults.net_worth_met ? (
-                              <>
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Qualified
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Below minimum
-                              </>
-                            )}
-                          </span>
+                            <div className="flex items-center gap-4 text-xs text-gray-400">
+                              {testResults.company && (
+                                <span className="flex items-center gap-1">
+                                  <Building className="h-3 w-3" />
+                                  {testResults.company}
+                                </span>
+                              )}
+                              {(testResults.state || testResults.zip_code) && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {testResults.state} {testResults.zip_code}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Score Badge */}
+                        {(testResults.score || testResults.ai_score) && (
+                          <div className="flex flex-col items-center">
+                            <div className="bg-white rounded-2xl px-6 py-4 shadow-xl">
+                              <div className="text-center">
+                                <div className="text-4xl font-bold text-gray-900">
+                                  {testResults.score || testResults.ai_score}
+                                </div>
+                                <div className="mt-1">
+                                  <span
+                                    className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                                      (testResults.score || testResults.ai_score) >= 75
+                                        ? 'bg-red-100 text-red-700'
+                                        : (testResults.score || testResults.ai_score) >= 50
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : 'bg-blue-100 text-blue-700'
+                                    }`}
+                                  >
+                                    {(testResults.score || testResults.ai_score) >= 75
+                                      ? 'Hot'
+                                      : (testResults.score || testResults.ai_score) >= 50
+                                      ? 'Warm'
+                                      : 'Cold'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
-                    
-                    {testResults.financial_flag && (
-                      <div className="mt-3 p-2 bg-yellow-50 rounded-md">
-                        <p className="text-sm text-yellow-800">{testResults.financial_flag}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Enhanced Financial Card */}
+              {testResults && (testResults.liquid_capital || testResults.net_worth) && (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-5 shadow-md">
+                  <div className="flex items-center mb-4">
+                    <DollarSign className="h-5 w-5 text-green-600 mr-2" />
+                    <h3 className="text-lg font-semibold text-gray-900">Financial Qualification</h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {testResults.liquid_capital && (
+                      <div className="bg-white rounded-lg p-4 border border-green-100">
+                        <p className="text-xs text-gray-500 mb-1">Liquid Capital</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          ${parseInt(testResults.liquid_capital || 0).toLocaleString()}
+                        </p>
+                        <div className="flex items-center mt-2">
+                          {parseInt(testResults.liquid_capital) >= 150000 ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                              <span className="text-xs text-green-600 font-medium">Qualified</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-4 w-4 text-red-500 mr-1" />
+                              <span className="text-xs text-red-600 font-medium">Below Minimum</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {testResults.net_worth && (
+                      <div className="bg-white rounded-lg p-4 border border-green-100">
+                        <p className="text-xs text-gray-500 mb-1">Net Worth</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          ${parseInt(testResults.net_worth || 0).toLocaleString()}
+                        </p>
+                        <div className="flex items-center mt-2">
+                          {parseInt(testResults.net_worth) >= 300000 ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                              <span className="text-xs text-green-600 font-medium">Qualified</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-4 w-4 text-red-500 mr-1" />
+                              <span className="text-xs text-red-600 font-medium">Below Minimum</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* AI Analysis Card */}
-                  {testResults.rationale && (
-                    <div className="bg-white shadow rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Analysis</h3>
-                      
-                      {/* Priority Traits */}
-                      {testResults.priority_traits && testResults.priority_traits.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Key Strengths:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {testResults.priority_traits.map((trait, index) => (
-                              <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                                {trait}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Rationale */}
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {testResults.rationale.map((item, index) => (
-                          <div key={index} className="flex items-start">
-                            <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                            <p className="text-sm text-gray-600">{item}</p>
-                          </div>
-                        ))}
-                      </div>
+                  {parseInt(testResults.liquid_capital) >= 150000 && parseInt(testResults.net_worth) >= 300000 && (
+                    <div className="mt-4 p-3 bg-green-100 rounded-lg text-sm text-green-700 text-center font-medium">
+                      <Trophy className="inline h-4 w-4 mr-2" />
+                      Exceeds both liquid capital and net worth minimums
                     </div>
                   )}
+                </div>
+              )}
 
-                  {/* Next Steps Card */}
-                  {testResults.next_steps && (
-                    <div className="bg-white shadow rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Recommended Next Steps</h3>
-                      <p className="text-sm text-gray-600">{testResults.next_steps}</p>
-                    </div>
-                  )}
+              {/* Enhanced AI Analysis - Works with multiple formats */}
+              {testResults && (testResults.ai_analysis || testResults.ai_reasoning) && (
+                <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                  <div className="border-b border-gray-200 bg-gray-50 px-5 py-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <Brain className="h-5 w-5 text-orange-500 mr-2" />
+                      AI Analysis
+                    </h3>
+                  </div>
+
+                  <div className="p-5">
+                    {/* Simple text reasoning */}
+                    {testResults.ai_reasoning && typeof testResults.ai_reasoning === 'string' && (
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          {testResults.ai_reasoning}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Structured analysis if available */}
+                    {testResults.ai_analysis && typeof testResults.ai_analysis === 'object' && (
+                      <div className="space-y-5">
+                        {/* Key Strengths if available */}
+                        {testResults.ai_analysis.key_strengths && Array.isArray(testResults.ai_analysis.key_strengths) && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">Key Strengths</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {testResults.ai_analysis.key_strengths.map((strength, index) => (
+                                <div
+                                  key={index}
+                                  className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3"
+                                >
+                                  <div className="flex items-start">
+                                    <CheckCircle className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm text-gray-700">{strength}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Observations if available */}
+                        {testResults.ai_analysis.observations && typeof testResults.ai_analysis.observations === 'object' && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">Detailed Observations</h4>
+                            <div className="space-y-3">
+                              {Object.entries(testResults.ai_analysis.observations).map(([category, observation]) => (
+                                <div key={category} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                  <div className="flex items-start">
+                                    <div className="flex-shrink-0 mr-3">
+                                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                        <Info className="h-5 w-5 text-orange-600" />
+                                      </div>
+                                    </div>
+                                    <div className="flex-1">
+                                      <h5 className="text-sm font-semibold text-gray-900 capitalize mb-1">
+                                        {category.replace(/_/g, ' ')}
+                                      </h5>
+                                      <p className="text-sm text-gray-600 leading-relaxed">
+                                        {observation}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Enhanced Next Steps */}
+              {testResults && testResults.next_steps && (
+                <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-5 shadow-md">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                    <Target className="h-5 w-5 text-orange-500 mr-2" />
+                    Recommended Next Steps
+                  </h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {testResults.next_steps}
+                  </p>
                 </div>
               )}
 
