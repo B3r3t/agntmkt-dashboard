@@ -116,7 +116,7 @@ export default function ScoringConfigPage() {
       };
 
       const response = await fetch(
-        'https://brndmkt.app.n8n.cloud/webhook-test/dashboard-client-test',
+        'https://brndmkt.app.n8n.cloud/webhook/dashboard-client-test',
         {
           method: 'POST',
           headers: {
