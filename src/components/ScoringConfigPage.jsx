@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Zap
 } from 'lucide-react';
+import LeadProfile from './LeadProfile';
 
 export default function ScoringConfigPage() {
   const { organization } = useOrganization();
@@ -124,7 +125,8 @@ export default function ScoringConfigPage() {
       }
 
       const data = await response.json();
-      setTestResults(data);
+      const leadData = data.lead || data;
+      setTestResults(leadData);
     } catch (err) {
       console.error('Error testing lead:', err);
       if (err.message.includes('Failed to fetch')) {
@@ -546,77 +548,7 @@ export default function ScoringConfigPage() {
               {/* Results Display */}
               {testResults && !isLoading && (
                 <div className="space-y-4 animate-fadeIn">
-                  {/* LinkedIn-style Profile Card */}
-                  <div className="bg-white shadow rounded-lg overflow-hidden">
-                    {/* Header Background */}
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 h-24"></div>
-                    
-                    {/* Profile Content */}
-                    <div className="px-6 pb-6 -mt-12">
-                      <div className="flex items-start space-x-4">
-                        {/* Profile Picture - SIMPLE VERSION */}
-                        <div className="flex-shrink-0">
-                          <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
-                            {(testResults.first_name || 'U')[0]}{(testResults.last_name || 'U')[0]}
-                          </div>
-                        </div>
-                        
-                        {/* Name and Details */}
-                        <div className="flex-grow pt-4">
-                          <h2 className="text-2xl font-bold text-gray-900">
-                            {testResults.first_name || 'Unknown'} {testResults.last_name || 'Lead'}
-                          </h2>
-                          {testResults.headline && (
-                            <p className="text-gray-600 mt-1 text-sm">{testResults.headline}</p>
-                          )}
-                          <div className="flex flex-wrap items-center mt-2 gap-3 text-sm text-gray-500">
-                            {testResults.current_company && (
-                              <span className="flex items-center">
-                                <Building2 className="h-4 w-4 mr-1" />
-                                {testResults.current_company}
-                              </span>
-                            )}
-                            {testResults.location && (
-                              <span className="flex items-center">
-                                <MapPin className="h-4 w-4 mr-1" />
-                                {testResults.location}
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Network Stats */}
-                          {(testResults.connections || testResults.followers) && (
-                            <div className="flex items-center mt-3 space-x-4 text-sm">
-                              {testResults.connections && (
-                                <span className="text-blue-600 font-medium">
-                                  {testResults.connections.toLocaleString()} connections
-                                </span>
-                              )}
-                              {testResults.followers && (
-                                <span className="text-blue-600 font-medium">
-                                  {testResults.followers.toLocaleString()} followers
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Score Badge */}
-                        <div className="flex-shrink-0 pt-4">
-                          <div className="text-center">
-                            <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full text-white text-2xl font-bold
-                              ${testResults.ai_score >= 75 ? 'bg-green-500' :
-                                testResults.ai_score >= 55 ? 'bg-yellow-500' : 'bg-red-500'}`}>
-                              {testResults.ai_score || 0}
-                            </div>
-                            <p className="text-sm font-medium text-gray-600 mt-2">
-                              {testResults.lead_tier || 'Not Scored'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <LeadProfile lead={testResults} />
 
                   {/* Financial Qualification Card */}
                   <div className="bg-white shadow rounded-lg p-4">
