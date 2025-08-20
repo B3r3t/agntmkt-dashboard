@@ -64,6 +64,10 @@
   .animate-scan {
     animation: scan 5s infinite;
   }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.5s ease-in;
+  }
 }
 
 @keyframes float {
@@ -95,6 +99,17 @@
 @keyframes scan {
   0% { left: -100%; }
   100% { left: 100%; }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Mobile performance optimization */
