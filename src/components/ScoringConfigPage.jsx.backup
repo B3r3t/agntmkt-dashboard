@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { supabase } from '../lib/supabase';
-/* eslint-disable-next-line no-unused-vars */
 import {
   Users,
   Building2,
@@ -21,666 +19,8 @@ import {
   Info,
   Clock,
   Building,
-  Mail,
-  Save,
-  RotateCcw,
-  HelpCircle,
-  Lightbulb,
-  Sliders
+  Mail
 } from 'lucide-react';
-
-const EnhancedScoringConfig = () => {
-  // STATE MANAGEMENT
-  const { organization } = useOrganization();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [error, setError] = useState(null);
-  const [weights, setWeights] = useState({
-    financial: 30,
-    leadership: 20,
-    franchise_readiness: 20,
-    industry_experience: 15,
-    timeline: 10,
-    location: 5
-  });
-  const [loadingConfig, setLoadingConfig] = useState(true);
-
-  // WEIGHT CATEGORIES WITH HARDCODED TAILWIND CLASSES
-  const weightCategories = [
-    { 
-      key: 'financial', 
-      label: 'Financial Capacity', 
-      shortLabel: 'Money',
-      icon: <DollarSign className="h-4 w-4" />,
-      bgColor: 'bg-green-100',
-      textColor: 'text-green-600',
-      borderColor: 'border-green-200',
-      description: 'Investment capacity and financial readiness',
-      helpText: 'Higher weight prioritizes candidates with strong financial qualifications. Critical for high-investment franchises.',
-      example: 'Lead with $200K liquid capital scores higher when this weight is increased.'
-    },
-    { 
-      key: 'leadership', 
-      label: 'Leadership Experience', 
-      shortLabel: 'Leader',
-      icon: <Users className="h-4 w-4" />,
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-600',
-      borderColor: 'border-blue-200',
-      description: 'Management and team leadership background',
-      helpText: 'Emphasizes management experience and people leadership skills. Essential for franchise success.',
-      example: 'Former managers, executives, or business owners get significantly higher scores.'
-    },
-    { 
-      key: 'franchise_readiness', 
-      label: 'Franchise Readiness', 
-      shortLabel: 'Ready',
-      icon: <Target className="h-4 w-4" />,
-      bgColor: 'bg-purple-100',
-      textColor: 'text-purple-600',
-      borderColor: 'border-purple-200',
-      description: 'Overall franchise readiness and commitment',
-      helpText: 'Combines preparation, research, commitment, and understanding of franchise model.',
-      example: 'Someone with business plan, timeline, and 6+ months research gets higher score.'
-    },
-    { 
-      key: 'industry_experience', 
-      label: 'Industry Experience', 
-      shortLabel: 'Industry',
-      icon: <TrendingUp className="h-4 w-4" />,
-      bgColor: 'bg-orange-100',
-      textColor: 'text-orange-600',
-      borderColor: 'border-orange-200',
-      description: 'Relevant industry background',
-      helpText: 'Weights candidates with wellness, service, or related industry experience. Brand-specific relevance.',
-      example: 'Former spa manager, fitness center owner, or wellness professional gets bonus points.'
-    },
-    { 
-      key: 'timeline', 
-      label: 'Timeline Urgency', 
-      shortLabel: 'Time',
-      icon: <Clock className="h-4 w-4" />,
-      bgColor: 'bg-red-100',
-      textColor: 'text-red-600',
-      borderColor: 'border-red-200',
-      description: 'Opening timeline urgency',
-      helpText: 'Prioritizes leads ready to move quickly. Useful for filling immediate territory needs.',
-      example: '3-6 month timeline scores much higher than 2+ year timeline.'
-    },
-    { 
-      key: 'location', 
-      label: 'Location Factors', 
-      shortLabel: 'Place',
-      icon: <MapPin className="h-4 w-4" />,
-      bgColor: 'bg-indigo-100',
-      textColor: 'text-indigo-600',
-      borderColor: 'border-indigo-200',
-      description: 'Geographic and market factors',
-      helpText: 'Usually kept low unless targeting specific markets. Can boost for priority expansion areas.',
-      example: 'Lead in priority expansion market or underserved area gets slight boost.'
-    }
-  ];
-
-  // LOAD EXISTING CONFIGURATION ON MOUNT
-  useEffect(() => {
-    if (organization?.id) {
-      loadScoringConfig();
-    }
-  }, [organization]);
-
-  const loadScoringConfig = async () => {
-    try {
-      setLoadingConfig(true);
-      setError(null);
-
-      // Load existing scoring configuration
-      const { data: configs, error: configError } = await supabase
-        .from('scoring_configs')
-        .select('*')
-        .eq('organization_id', organization.id)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (configError) {
-        console.warn('Error loading scoring config:', configError);
-        // Continue with defaults if no config exists
-      }
-
-      if (configs && configs.length > 0) {
-        const config = configs[0];
-        // Parse JSONB weights
-        const loadedWeights = config.weights || {};
-        
-        // Merge with defaults to ensure all categories exist
-        const mergedWeights = {
-          financial: 30,
-          leadership: 20,
-          franchise_readiness: 20,
-          industry_experience: 15,
-          timeline: 10,
-          location: 5,
-          ...loadedWeights
-        };
-
-        setWeights(mergedWeights);
-        console.log('Loaded existing scoring config:', mergedWeights);
-      } else {
-        console.log('No existing config found, using defaults');
-        // Use default weights based on organization
-        if (organization.name === 'MassageLuXe') {
-          setWeights({
-            financial: 30,
-            leadership: 20,
-            franchise_readiness: 20,
-            industry_experience: 15,
-            timeline: 10,
-            location: 5
-          });
-        } else {
-          // Generic franchise weights (no industry experience)
-          setWeights({
-            financial: 30,
-            leadership: 25,
-            franchise_readiness: 25,
-            timeline: 15,
-            location: 5,
-            industry_experience: 0
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Error in loadScoringConfig:', err);
-      setError('Failed to load configuration');
-    } finally {
-      setLoadingConfig(false);
-    }
-  };
-
-  // WEIGHT MANAGEMENT
-  const handleWeightChange = (category, value) => {
-    const newValue = parseInt(value);
-    setWeights(prev => ({
-      ...prev,
-      [category]: newValue
-    }));
-  };
-
-  // PRESET CONFIGURATIONS
-  const applyPreset = (presetType) => {
-    let newWeights = {};
-    const hasIndustryExp = organization?.name === 'MassageLuXe';
-
-    switch (presetType) {
-      case 'conservative':
-        newWeights = {
-          financial: 40,
-          leadership: 25,
-          franchise_readiness: 20,
-          industry_experience: hasIndustryExp ? 10 : 0,
-          timeline: 5,
-          location: 0
-        };
-        break;
-      case 'balanced':
-        newWeights = hasIndustryExp ? {
-          financial: 30,
-          leadership: 20,
-          franchise_readiness: 20,
-          industry_experience: 15,
-          timeline: 10,
-          location: 5
-        } : {
-          financial: 30,
-          leadership: 25,
-          franchise_readiness: 25,
-          timeline: 15,
-          location: 5,
-          industry_experience: 0
-        };
-        break;
-      case 'growth':
-        newWeights = {
-          financial: 20,
-          leadership: 30,
-          franchise_readiness: 30,
-          industry_experience: hasIndustryExp ? 10 : 0,
-          timeline: 10,
-          location: 0
-        };
-        break;
-    }
-
-    setWeights(newWeights);
-  };
-
-  // SAVE CONFIGURATION TO SUPABASE
-  const handleSave = async () => {
-    if (!organization?.id) {
-      setError('No organization selected');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Prepare configuration data
-      const configData = {
-        organization_id: organization.id,
-        name: `${organization.name} AI Scoring Configuration`,
-        description: 'Franchise lead scoring weights and criteria',
-        criteria: Object.keys(weights).reduce((acc, key) => {
-          acc[key] = weights[key] > 0;
-          return acc;
-        }, {}),
-        weights: weights,
-        ai_prompt: `Evaluate franchise prospects for ${organization.name} using the configured scoring weights. Focus on financial capacity (${weights.financial}%), leadership experience (${weights.leadership}%), and franchise readiness (${weights.franchise_readiness}%).`,
-        is_active: true
-      };
-
-      // Check if configuration already exists
-      const { data: existingConfig } = await supabase
-        .from('scoring_configs')
-        .select('id')
-        .eq('organization_id', organization.id)
-        .eq('is_active', true)
-        .single();
-
-      let result;
-      if (existingConfig) {
-        // Update existing configuration
-        result = await supabase
-          .from('scoring_configs')
-          .update(configData)
-          .eq('id', existingConfig.id)
-          .select();
-      } else {
-        // Insert new configuration
-        result = await supabase
-          .from('scoring_configs')
-          .insert(configData)
-          .select();
-      }
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      // Optional: Trigger N8N webhook if endpoint exists
-      try {
-        const webhookResponse = await fetch('/api/webhooks/scoring-config-update', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            organizationId: organization.id,
-            organizationName: organization.name,
-            action: 'update_scoring_config',
-            config: {
-              weights: weights,
-              criteria: configData.criteria,
-              is_enabled: true,
-              timestamp: new Date().toISOString()
-            }
-          })
-        });
-        
-        if (webhookResponse.ok) {
-          console.log('N8N webhook triggered successfully');
-        } else {
-          console.warn('N8N webhook failed, but config saved to database');
-        }
-      } catch (webhookError) {
-        console.warn('N8N webhook not available, but config saved successfully:', webhookError);
-      }
-
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 3000);
-      console.log('Configuration saved successfully');
-
-    } catch (error) {
-      console.error('Error saving configuration:', error);
-      setError(`Failed to save configuration: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // RESET TO DEFAULTS
-  const resetToDefaults = () => {
-    const hasIndustryExp = organization?.name === 'MassageLuXe';
-    
-    if (hasIndustryExp) {
-      setWeights({
-        financial: 30,
-        leadership: 20,
-        franchise_readiness: 20,
-        industry_experience: 15,
-        timeline: 10,
-        location: 5
-      });
-    } else {
-      setWeights({
-        financial: 30,
-        leadership: 25,
-        franchise_readiness: 25,
-        timeline: 15,
-        location: 5,
-        industry_experience: 0
-      });
-    }
-  };
-
-  // COMPUTED VALUES
-  const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-  const hasIndustryExperience = organization?.name === 'MassageLuXe';
-
-  // LOADING STATE
-  if (loadingConfig) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-        <span className="ml-3 text-gray-600">Loading scoring configuration...</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6 pb-6">
-      
-      {/* ERROR DISPLAY */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-800 text-sm">{error}</p>
-          </div>
-        </div>
-      )}
-      
-      {/* INSTRUCTIONS HEADER */}
-      <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-4 lg:p-6">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-orange-500 rounded-lg flex-shrink-0">
-            <Lightbulb className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Scoring Configuration for {organization?.name}</h3>
-            <p className="text-gray-700 text-sm lg:text-base mb-3">
-              Configure how your AI evaluates franchise leads. Adjust weights to match your brand's priorities - higher percentages mean those factors carry more importance in the final score.
-            </p>
-            <div className="text-sm text-orange-800 bg-orange-200 rounded-lg p-3">
-              <strong>Pro Tip:</strong> Weights typically total around 100%. Focus on what matters most for franchise success in your industry.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* MAIN CONFIGURATION */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        
-        {/* WEIGHT CONFIGURATION - MOBILE TILES */}
-        <div className="xl:col-span-3">
-          <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-4 lg:px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sliders className="h-5 w-5 text-white" />
-                  <h2 className="text-lg lg:text-xl font-bold text-white">
-                    Scoring Weights
-                  </h2>
-                </div>
-                <div className="text-right">
-                  <div className="text-xl lg:text-2xl font-bold text-white">{totalWeight}%</div>
-                  <div className="text-orange-100 text-xs">Total</div>
-                </div>
-              </div>
-              <p className="text-orange-100 text-sm mt-1 hidden lg:block">Adjust importance of each factor</p>
-            </div>
-            
-            {/* WEIGHT WARNING */}
-            {totalWeight > 110 && (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 lg:p-4">
-                <div className="flex items-center">
-                  <AlertCircle className="h-4 w-4 lg:h-5 lg:w-5 text-yellow-500 mr-2 flex-shrink-0" />
-                  <p className="text-yellow-800 text-sm">
-                    <strong>High Total:</strong> {totalWeight}% - Consider reducing some weights for optimal balance
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="p-4 lg:p-6">
-              {/* QUICK PRESETS */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Presets:</h4>
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => applyPreset('conservative')}
-                    disabled={isLoading}
-                    className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors disabled:opacity-50"
-                  >
-                    🎯 Conservative
-                  </button>
-                  <button 
-                    onClick={() => applyPreset('balanced')}
-                    disabled={isLoading}
-                    className="px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors disabled:opacity-50"
-                  >
-                    ⚖️ Balanced
-                  </button>
-                  <button 
-                    onClick={() => applyPreset('growth')}
-                    disabled={isLoading}
-                    className="px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors disabled:opacity-50"
-                  >
-                    🚀 Growth
-                  </button>
-                </div>
-              </div>
-
-              {/* WEIGHT TILES - RESPONSIVE GRID */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {weightCategories.map((category) => {
-                  const weight = weights[category.key] || 0;
-                  const showCategory = hasIndustryExperience || category.key !== 'industry_experience';
-                  
-                  if (!showCategory) return null;
-
-                  return (
-                    <div key={category.key} className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                      {/* MOBILE-OPTIMIZED HEADER */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className={`p-2 rounded-lg ${category.bgColor} ${category.textColor}`}>
-                            {category.icon}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 text-sm lg:text-base">
-                              <span className="lg:hidden">{category.shortLabel}</span>
-                              <span className="hidden lg:inline">{category.label}</span>
-                            </h4>
-                          </div>
-                        </div>
-                        <span className="text-2xl font-bold text-orange-600">{weight}%</span>
-                      </div>
-                      
-                      {/* SLIDER */}
-                      <div className="space-y-2 mb-3">
-                        <input
-                          type="range"
-                          min="0"
-                          max="50"
-                          value={weight}
-                          onChange={(e) => handleWeightChange(category.key, e.target.value)}
-                          disabled={isLoading}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer orange-slider"
-                        />
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span>0%</span>
-                          <span>50%</span>
-                        </div>
-                      </div>
-
-                      {/* EXPANDABLE HELP */}
-                      <details className="mt-3">
-                        <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800 flex items-center gap-1">
-                          <HelpCircle className="h-3 w-3" />
-                          Help & Examples
-                        </summary>
-                        <div className={`mt-2 text-xs text-gray-600 bg-blue-50 rounded p-2 border ${category.borderColor}`}>
-                          <p className="mb-1"><strong>Impact:</strong> {category.helpText}</p>
-                          <p><strong>Example:</strong> {category.example}</p>
-                        </div>
-                      </details>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* SIDEBAR */}
-        <div className="space-y-4">
-          
-          {/* LIVE PREVIEW */}
-          <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3">
-              <h3 className="font-semibold text-white text-sm lg:text-base">Live Preview</h3>
-            </div>
-            <div className="p-4">
-              <div className="space-y-3">
-                <div>
-                  <div className="font-semibold text-gray-900 text-sm">Sarah Johnson</div>
-                  <div className="text-xs text-gray-500">Regional Operations Manager</div>
-                  <div className="text-xs text-gray-500">Capital: $175,000</div>
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-600">AI Score</span>
-                    <span className="text-xl font-bold text-orange-600">
-                      {Math.min(100, Math.round(65 + (weights.financial || 0) * 0.3 + (weights.leadership || 0) * 0.4))}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300" 
-                      style={{width: `${Math.min(100, Math.round(65 + (weights.financial || 0) * 0.3 + (weights.leadership || 0) * 0.4))}%`}}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-orange-600 mt-2 font-medium">
-                    🔥 Hot Lead - Route immediately
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ACTION BUTTONS */}
-          <div className="space-y-3">
-            <button
-              onClick={handleSave}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-3 px-4 rounded-xl font-bold hover:shadow-lg disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span className="hidden sm:inline">Saving...</span>
-                </>
-              ) : isSaved ? (
-                <>
-                  <Zap className="h-4 w-4" />
-                  <span className="hidden sm:inline">Saved!</span>
-                  <span className="sm:hidden">✓</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span className="hidden sm:inline">Save Configuration</span>
-                  <span className="sm:hidden">Save</span>
-                </>
-              )}
-            </button>
-            
-            <button 
-              onClick={resetToDefaults}
-              disabled={isLoading}
-              className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset to Defaults
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* SUCCESS NOTIFICATION */}
-      {isSaved && (
-        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-fade-in z-50 max-w-xs">
-          <Zap className="h-5 w-5 flex-shrink-0" />
-          <div className="text-sm">
-            <div className="font-semibold">Saved!</div>
-            <div className="text-green-100 hidden sm:block">Configuration updated</div>
-          </div>
-        </div>
-      )}
-
-      {/* MOBILE-OPTIMIZED STYLES */}
-      <style jsx>{`
-        .animate-fade-in {
-          animation: fadeIn 0.4s ease-out;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .orange-slider {
-          background: linear-gradient(to right, #ea580c 0%, #ea580c calc(var(--value, 0) * 2%), #e5e7eb calc(var(--value, 0) * 2%), #e5e7eb 100%);
-        }
-        
-        input[type="range"]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: #ea580c;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
-          border: 2px solid white;
-        }
-        
-        input[type="range"]::-moz-range-thumb {
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: #ea580c;
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
-        }
-        
-        @media (max-width: 640px) {
-          input[type="range"]::-webkit-slider-thumb {
-            height: 24px;
-            width: 24px;
-          }
-          input[type="range"]::-moz-range-thumb {
-            height: 24px;
-            width: 24px;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
 
 export default function ScoringConfigPage() {
   const { organization } = useOrganization();
@@ -845,9 +185,68 @@ export default function ScoringConfigPage() {
 
         {/* Tab Content */}
         {activeTab === 'config' ? (
-          <EnhancedScoringConfig />
+          // Existing configuration content
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Lead Scoring Criteria
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Configure how leads are scored based on various attributes and behaviors.
+            </p>
+
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium text-gray-900">Job Title Weight</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Score based on seniority and relevance
+                </p>
+                <input
+                  type="range"
+                  className="w-full mt-2"
+                  min="0"
+                  max="100"
+                  defaultValue="25"
+                />
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium text-gray-900">Company Size Weight</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Score based on company employee count
+                </p>
+                <input
+                  type="range"
+                  className="w-full mt-2"
+                  min="0"
+                  max="100"
+                  defaultValue="25"
+                />
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium text-gray-900">Industry Match Weight</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Score based on target industry alignment
+                </p>
+                <input
+                  type="range"
+                  className="w-full mt-2"
+                  min="0"
+                  max="100"
+                  defaultValue="30"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                Save Configuration
+              </button>
+            </div>
+          </div>
+        
         ) : (
-          // Keep your existing test scoring content here...
+          // Enhanced container with better spacing
           <div className="flex flex-col lg:flex-row gap-8">
             {/* LEFT SIDE - Keep your existing form but wrap it better */}
             <div className="w-full lg:w-2/5">
