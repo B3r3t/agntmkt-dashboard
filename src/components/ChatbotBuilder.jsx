@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
-import {
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-  Phone,
+import { 
+  MessageSquare, 
+  ChevronDown, 
+  ChevronUp, 
+  Phone, 
   MapPin,
   Building,
   Briefcase,
@@ -16,7 +16,12 @@ import {
   Bot,
   Settings,
   Eye,
-  Search
+  Search,
+  Upload,
+  Sliders,
+  Paperclip,
+  Smile,
+  Send
 } from 'lucide-react';
 
 export default function ChatbotBuilder() {
@@ -34,28 +39,80 @@ export default function ChatbotBuilder() {
     avgSatisfaction: 0,
     todayCount: 0
   });
-
-  // AGNT Configuration States
+  
+  // ENHANCED AGNT Configuration State
   const [agntConfig, setAgntConfig] = useState({
+    // Basic
     agnt_name: 'Sales Assistant',
     support_email: 'support@company.com',
+    agnt_logo: null,
+    
+    // Appearance
     primary_color: branding?.primary_color || '#ea580c',
     text_color: '#ffffff',
     bg_color: '#ffffff',
+    widget_size: 'medium',
+    
+    // Messages
     welcome_message: 'Hi! How can I help you today?',
+    offline_message: 'We\'re currently offline. Please leave a message and we\'ll get back to you!',
+    initial_greeting: 'Have a question? Click here to chat!',
+    
+    // Widget Behavior
     widget_position: 'bottom-right',
     auto_open: false,
     auto_open_delay: 5,
+    greeting_delay: 3,
+    
+    // Features
     show_typing_indicator: true,
     show_read_receipts: false,
     enable_file_uploads: false,
     enable_emoji_picker: true,
     sound_notifications: true,
-    desktop_notifications: false
+    desktop_notifications: false,
+    
+    // Business Hours
+    business_hours_enabled: false,
+    business_hours: {
+      monday: { enabled: true, start: '09:00', end: '17:00' },
+      tuesday: { enabled: true, start: '09:00', end: '17:00' },
+      wednesday: { enabled: true, start: '09:00', end: '17:00' },
+      thursday: { enabled: true, start: '09:00', end: '17:00' },
+      friday: { enabled: true, start: '09:00', end: '17:00' },
+      saturday: { enabled: false, start: '09:00', end: '17:00' },
+      sunday: { enabled: false, start: '09:00', end: '17:00' },
+    },
+    
+    // Advanced
+    language: 'en',
+    bubble_animation: 'bounce',
+    response_delay: 1000,
+    max_file_size: 5,
+    allowed_file_types: '.pdf,.doc,.docx,.jpg,.png',
   });
-
+  
   const [previewState, setPreviewState] = useState('closed');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Widget Size Configurations
+  const widgetSizes = {
+    small: { width: '280px', height: '400px', buttonSize: '48px', fontSize: '14px' },
+    medium: { width: '350px', height: '500px', buttonSize: '56px', fontSize: '15px' },
+    large: { width: '400px', height: '600px', buttonSize: '64px', fontSize: '16px' },
+  };
+
+  // Logo Upload Handler
+  const handleLogoUpload = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAgntConfig({ ...agntConfig, agnt_logo: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     if (organization?.id) {
@@ -67,42 +124,37 @@ export default function ChatbotBuilder() {
   const fetchStats = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-
-      // Get chatbot IDs for this organization first
+      
       const { data: chatbots } = await supabase
         .from('chatbots')
         .select('id')
         .eq('organization_id', organization.id);
-
+      
       const chatbotIds = chatbots?.map(c => c.id) || [];
-
+      
       if (chatbotIds.length === 0) {
         setStats({ total: 0, withLeads: 0, avgSatisfaction: 0, todayCount: 0 });
         return;
       }
 
       const [totalResult, withLeadsResult, todayResult, satisfactionResult] = await Promise.all([
-        // Total conversations
         supabase
           .from('chatbot_conversations')
           .select('*', { count: 'exact', head: true })
           .in('chatbot_id', chatbotIds),
-
-        // Conversations with lead info
+        
         supabase
           .from('chatbot_conversations')
           .select('*', { count: 'exact', head: true })
           .in('chatbot_id', chatbotIds)
           .not('email', 'is', null),
-
-        // Today's conversations
+        
         supabase
           .from('chatbot_conversations')
           .select('*', { count: 'exact', head: true })
           .in('chatbot_id', chatbotIds)
           .gte('started_at', today),
-
-        // Average satisfaction
+        
         supabase
           .from('chatbot_conversations')
           .select('satisfaction_rating')
@@ -128,21 +180,19 @@ export default function ChatbotBuilder() {
   const fetchConversations = async () => {
     try {
       setLoading(true);
-
-      // Get chatbot IDs for this organization
+      
       const { data: chatbots } = await supabase
         .from('chatbots')
         .select('id, name')
         .eq('organization_id', organization.id);
-
+      
       const chatbotIds = chatbots?.map(c => c.id) || [];
-
+      
       if (chatbotIds.length === 0) {
         setConversations([]);
         return;
       }
 
-      // Get conversations for these chatbots
       const { data, error } = await supabase
         .from('chatbot_conversations')
         .select('*')
@@ -151,13 +201,12 @@ export default function ChatbotBuilder() {
         .limit(100);
 
       if (error) throw error;
-
-      // Map chatbot names to conversations
+      
       const conversationsWithChatbotNames = data?.map(conv => ({
         ...conv,
         chatbot_name: chatbots.find(c => c.id === conv.chatbot_id)?.name || 'Unknown'
       })) || [];
-
+      
       setConversations(conversationsWithChatbotNames);
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -215,25 +264,24 @@ export default function ChatbotBuilder() {
   };
 
   const filteredConversations = conversations.filter(conv => {
-    const matchesSearch =
+    const matchesSearch = 
       (conv.lead_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        conv.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        conv.conversation_summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        conv.session_id?.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesFilter =
+    
+    const matchesFilter = 
       filterType === 'all' ||
       (filterType === 'with_leads' && conv.email) ||
       (filterType === 'no_leads' && !conv.email) ||
       (filterType === 'high_satisfaction' && conv.satisfaction_rating >= 4);
-
+    
     return matchesSearch && matchesFilter;
   });
 
   const saveAgntConfig = async () => {
     setIsSaving(true);
-    // Placeholder for saving configuration
-    // This would integrate with your chatbot configuration table
+    // TODO: Save to database
     setTimeout(() => {
       setIsSaving(false);
       alert('Configuration saved successfully!');
@@ -265,7 +313,7 @@ export default function ChatbotBuilder() {
                   ? 'border-orange-500 text-orange-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
-              style={activeTab === 'conversations' && primaryColor ?
+              style={activeTab === 'conversations' && primaryColor ? 
                 { borderBottomColor: primaryColor, color: primaryColor } : {}}
             >
               Conversations
@@ -277,7 +325,7 @@ export default function ChatbotBuilder() {
                   ? 'border-orange-500 text-orange-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
-              style={activeTab === 'configuration' && primaryColor ?
+              style={activeTab === 'configuration' && primaryColor ? 
                 { borderBottomColor: primaryColor, color: primaryColor } : {}}
             >
               AGNT Configuration
@@ -382,11 +430,11 @@ export default function ChatbotBuilder() {
                                   Anonymous Visitor
                                 </span>
                               )}
-
+                              
                               {conversation.email && (
                                 <span className="text-sm text-gray-500">{conversation.email}</span>
                               )}
-
+                              
                               {conversation.email ? (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                   Lead Captured
@@ -519,15 +567,15 @@ export default function ChatbotBuilder() {
             {/* Configuration Panel */}
             <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">AGNT Settings</h2>
-
-              <div className="space-y-6">
+              
+              <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
                 {/* Basic Settings */}
                 <div className="space-y-4">
                   <h3 className="font-medium text-gray-900 flex items-center">
                     <Settings className="h-4 w-4 mr-2" />
                     Basic Configuration
                   </h3>
-
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       AGNT Name
@@ -539,7 +587,7 @@ export default function ChatbotBuilder() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
-
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Support Email (for escalation)
@@ -551,6 +599,40 @@ export default function ChatbotBuilder() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
+                  
+                  {/* Logo Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      AGNT Logo (32x32px recommended)
+                    </label>
+                    <div className="flex items-center space-x-3">
+                      {agntConfig.agnt_logo && (
+                        <img 
+                          src={agntConfig.agnt_logo} 
+                          alt="AGNT Logo" 
+                          className="w-8 h-8 rounded object-cover border border-gray-300"
+                        />
+                      )}
+                      <label className="flex items-center px-3 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <Upload className="h-4 w-4 mr-2 text-gray-600" />
+                        <span className="text-sm text-gray-700">Upload Logo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      {agntConfig.agnt_logo && (
+                        <button
+                          onClick={() => setAgntConfig({ ...agntConfig, agnt_logo: null })}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Appearance Settings */}
@@ -559,7 +641,32 @@ export default function ChatbotBuilder() {
                     <Eye className="h-4 w-4 mr-2" />
                     Appearance
                   </h3>
-
+                  
+                  {/* Widget Size */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-2">Widget Size</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['small', 'medium', 'large'].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => setAgntConfig({ ...agntConfig, widget_size: size })}
+                          className={`px-3 py-2 rounded-lg border text-sm capitalize transition-all ${
+                            agntConfig.widget_size === size
+                              ? 'border-orange-500 bg-orange-50 text-orange-600'
+                              : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {agntConfig.widget_size === 'small' && 'Compact: 280x400px - Best for mobile'}
+                      {agntConfig.widget_size === 'medium' && 'Standard: 350x500px - Recommended'}
+                      {agntConfig.widget_size === 'large' && 'Large: 400x600px - Best for desktop'}
+                    </p>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">Primary Color</label>
@@ -578,7 +685,7 @@ export default function ChatbotBuilder() {
                         />
                       </div>
                     </div>
-
+                    
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">Text Color</label>
                       <div className="flex items-center space-x-2">
@@ -597,15 +704,30 @@ export default function ChatbotBuilder() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Animation Style */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Entrance Animation</label>
+                    <select
+                      value={agntConfig.bubble_animation}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, bubble_animation: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="bounce">Bounce</option>
+                      <option value="fade">Fade In</option>
+                      <option value="slide">Slide Up</option>
+                      <option value="scale">Scale</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Chat Widget Settings */}
                 <div className="space-y-4 border-t pt-4">
                   <h3 className="font-medium text-gray-900 flex items-center">
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    Chat Widget
+                    Messages & Content
                   </h3>
-
+                  
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Welcome Message</label>
                     <textarea
@@ -615,7 +737,31 @@ export default function ChatbotBuilder() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
-
+                  
+                  {/* Offline Message */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Offline Message</label>
+                    <textarea
+                      rows="2"
+                      value={agntConfig.offline_message}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, offline_message: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Shown when outside business hours"
+                    />
+                  </div>
+                  
+                  {/* Initial Greeting */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Initial Greeting Bubble</label>
+                    <input
+                      type="text"
+                      value={agntConfig.initial_greeting}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, initial_greeting: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Shows before chat is opened"
+                    />
+                  </div>
+                  
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Widget Position</label>
                     <select
@@ -629,50 +775,159 @@ export default function ChatbotBuilder() {
                       <option value="top-left">Top Left</option>
                     </select>
                   </div>
-
-                  {/* Feature Toggles */}
-                  <div className="space-y-3">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={agntConfig.auto_open}
-                        onChange={(e) => setAgntConfig({ ...agntConfig, auto_open: e.target.checked })}
-                        className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
-                      />
-                      <span className="text-sm text-gray-700">Auto-open after {agntConfig.auto_open_delay} seconds</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={agntConfig.show_typing_indicator}
-                        onChange={(e) => setAgntConfig({ ...agntConfig, show_typing_indicator: e.target.checked })}
-                        className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
-                      />
-                      <span className="text-sm text-gray-700">Show typing indicator</span>
-                    </label>
-
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={agntConfig.sound_notifications}
-                        onChange={(e) => setAgntConfig({ ...agntConfig, sound_notifications: e.target.checked })}
-                        className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
-                      />
-                      <span className="text-sm text-gray-700">Sound notifications</span>
-                    </label>
+                  
+                  {/* Language Selection */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Language</label>
+                    <select
+                      value={agntConfig.language}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, language: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="pt">Portuguese</option>
+                      <option value="it">Italian</option>
+                    </select>
                   </div>
                 </div>
 
-                <button
-                  onClick={saveAgntConfig}
-                  disabled={isSaving}
-                  className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  {isSaving ? 'Saving...' : 'Save Configuration'}
-                </button>
+                {/* Business Hours Section */}
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="font-medium text-gray-900 flex items-center">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Business Hours
+                  </h3>
+                  
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={agntConfig.business_hours_enabled}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, business_hours_enabled: e.target.checked })}
+                      className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-gray-700">Enable Business Hours</span>
+                  </label>
+                  
+                  {agntConfig.business_hours_enabled && (
+                    <div className="space-y-2 pl-4">
+                      {Object.entries(agntConfig.business_hours).map(([day, hours]) => (
+                        <div key={day} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={hours.enabled}
+                            onChange={(e) => setAgntConfig({
+                              ...agntConfig,
+                              business_hours: {
+                                ...agntConfig.business_hours,
+                                [day]: { ...hours, enabled: e.target.checked }
+                              }
+                            })}
+                            className="h-4 w-4 text-orange-600 rounded"
+                          />
+                          <span className="text-sm text-gray-700 w-20 capitalize">{day}</span>
+                          <input
+                            type="time"
+                            value={hours.start}
+                            onChange={(e) => setAgntConfig({
+                              ...agntConfig,
+                              business_hours: {
+                                ...agntConfig.business_hours,
+                                [day]: { ...hours, start: e.target.value }
+                              }
+                            })}
+                            disabled={!hours.enabled}
+                            className="px-2 py-1 text-sm border border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-500">to</span>
+                          <input
+                            type="time"
+                            value={hours.end}
+                            onChange={(e) => setAgntConfig({
+                              ...agntConfig,
+                              business_hours: {
+                                ...agntConfig.business_hours,
+                                [day]: { ...hours, end: e.target.value }
+                              }
+                            })}
+                            disabled={!hours.enabled}
+                            className="px-2 py-1 text-sm border border-gray-300 rounded"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Feature Toggles */}
+                <div className="space-y-3 border-t pt-4">
+                  <h3 className="font-medium text-gray-900 flex items-center mb-2">
+                    <Sliders className="h-4 w-4 mr-2" />
+                    Features
+                  </h3>
+                  
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={agntConfig.auto_open}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, auto_open: e.target.checked })}
+                      className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-gray-700">Auto-open after {agntConfig.auto_open_delay} seconds</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={agntConfig.show_typing_indicator}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, show_typing_indicator: e.target.checked })}
+                      className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-gray-700">Show typing indicator</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={agntConfig.sound_notifications}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, sound_notifications: e.target.checked })}
+                      className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-gray-700">Sound notifications</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={agntConfig.enable_file_uploads}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, enable_file_uploads: e.target.checked })}
+                      className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-gray-700">Enable file uploads</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={agntConfig.enable_emoji_picker}
+                      onChange={(e) => setAgntConfig({ ...agntConfig, enable_emoji_picker: e.target.checked })}
+                      className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-gray-700">Enable emoji picker</span>
+                  </label>
+                </div>
               </div>
+
+              <button
+                onClick={saveAgntConfig}
+                disabled={isSaving}
+                className="w-full mt-6 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {isSaving ? 'Saving...' : 'Save Configuration'}
+              </button>
             </div>
 
             {/* Preview Panel */}
@@ -683,8 +938,8 @@ export default function ChatbotBuilder() {
                   <button
                     onClick={() => setPreviewState('closed')}
                     className={`px-3 py-1 text-sm rounded ${
-                      previewState === 'closed'
-                        ? 'bg-white text-gray-900 shadow'
+                      previewState === 'closed' 
+                        ? 'bg-white text-gray-900 shadow' 
                         : 'text-gray-600 hover:bg-white/50'
                     }`}
                   >
@@ -693,8 +948,8 @@ export default function ChatbotBuilder() {
                   <button
                     onClick={() => setPreviewState('open')}
                     className={`px-3 py-1 text-sm rounded ${
-                      previewState === 'open'
-                        ? 'bg-white text-gray-900 shadow'
+                      previewState === 'open' 
+                        ? 'bg-white text-gray-900 shadow' 
                         : 'text-gray-600 hover:bg-white/50'
                     }`}
                   >
@@ -702,8 +957,8 @@ export default function ChatbotBuilder() {
                   </button>
                 </div>
               </div>
-
-              <div className="relative bg-white rounded-lg shadow-lg h-[500px] overflow-hidden">
+              
+              <div className="relative bg-white rounded-lg shadow-lg h-[600px] overflow-hidden">
                 {/* Mock Website Background */}
                 <div className="p-6">
                   <div className="h-8 bg-gray-200 rounded w-32 mb-4"></div>
@@ -713,7 +968,22 @@ export default function ChatbotBuilder() {
                     <div className="h-4 bg-gray-100 rounded w-5/6"></div>
                   </div>
                 </div>
-
+                
+                {/* Initial Greeting Bubble (shows when closed) */}
+                {previewState === 'closed' && agntConfig.initial_greeting && (
+                  <div className={`absolute ${
+                    agntConfig.widget_position === 'bottom-right' ? 'bottom-20 right-4' :
+                    agntConfig.widget_position === 'bottom-left' ? 'bottom-20 left-4' :
+                    agntConfig.widget_position === 'top-right' ? 'top-20 right-4' :
+                    'top-20 left-4'
+                  }`}>
+                    <div className="bg-white rounded-lg shadow-lg p-3 max-w-xs animate-bounce">
+                      <p className="text-sm text-gray-700">{agntConfig.initial_greeting}</p>
+                      <div className="absolute bottom-0 right-4 w-3 h-3 bg-white transform rotate-45 translate-y-1.5"></div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Chat Widget Preview */}
                 <div className={`absolute ${
                   agntConfig.widget_position === 'bottom-right' ? 'bottom-4 right-4' :
@@ -722,24 +992,63 @@ export default function ChatbotBuilder() {
                   'top-4 left-4'
                 }`}>
                   {previewState === 'closed' ? (
-                    /* Closed Widget */
+                    /* Closed Widget with Logo */
                     <div
-                      className="rounded-full p-4 shadow-lg cursor-pointer hover:scale-110 transition-transform"
-                      style={{ backgroundColor: agntConfig.primary_color }}
+                      className={`rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform flex items-center justify-center`}
+                      style={{ 
+                        backgroundColor: agntConfig.primary_color,
+                        width: widgetSizes[agntConfig.widget_size].buttonSize,
+                        height: widgetSizes[agntConfig.widget_size].buttonSize,
+                      }}
                     >
-                      <MessageSquare className="w-6 h-6" style={{ color: agntConfig.text_color }} />
+                      {agntConfig.agnt_logo ? (
+                        <img 
+                          src={agntConfig.agnt_logo} 
+                          alt="Chat" 
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <MessageSquare 
+                          className={`$
+                            {agntConfig.widget_size === 'small' ? 'w-5 h-5' :
+                            agntConfig.widget_size === 'medium' ? 'w-6 h-6' :
+                            'w-7 h-7'}
+                          `} 
+                          style={{ color: agntConfig.text_color }} 
+                        />
+                      )}
                     </div>
                   ) : (
                     /* Open Chat Window */
-                    <div className="w-80 h-96 bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col">
+                    <div 
+                      className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col"
+                      style={{
+                        width: widgetSizes[agntConfig.widget_size].width,
+                        height: widgetSizes[agntConfig.widget_size].height,
+                      }}
+                    >
                       {/* Chat Header */}
                       <div
                         className="p-4 rounded-t-lg flex items-center justify-between"
                         style={{ backgroundColor: agntConfig.primary_color }}
                       >
                         <div className="flex items-center">
-                          <Bot className="h-5 w-5 mr-2" style={{ color: agntConfig.text_color }} />
-                          <span className="font-semibold" style={{ color: agntConfig.text_color }}>
+                          {agntConfig.agnt_logo ? (
+                            <img 
+                              src={agntConfig.agnt_logo} 
+                              alt={agntConfig.agnt_name} 
+                              className="h-6 w-6 rounded-full object-cover mr-2"
+                            />
+                          ) : (
+                            <Bot className="h-5 w-5 mr-2" style={{ color: agntConfig.text_color }} />
+                          )}
+                          <span 
+                            className="font-semibold" 
+                            style={{ 
+                              color: agntConfig.text_color,
+                              fontSize: widgetSizes[agntConfig.widget_size].fontSize 
+                            }}
+                          >
                             {agntConfig.agnt_name}
                           </span>
                         </div>
@@ -747,11 +1056,21 @@ export default function ChatbotBuilder() {
                           ✕
                         </button>
                       </div>
-
+                      
+                      {/* Online/Offline Status */}
+                      {agntConfig.business_hours_enabled && (
+                        <div className="bg-gray-50 px-4 py-2 border-b text-xs flex items-center">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                          <span className="text-gray-600">We're online</span>
+                        </div>
+                      )}
+                      
                       {/* Chat Messages */}
                       <div className="flex-1 p-4 overflow-y-auto">
                         <div className="bg-gray-100 rounded-lg p-3 mb-3">
-                          <p className="text-sm">{agntConfig.welcome_message}</p>
+                          <p className="text-sm" style={{ fontSize: widgetSizes[agntConfig.widget_size].fontSize }}>
+                            {agntConfig.welcome_message}
+                          </p>
                         </div>
                         {agntConfig.show_typing_indicator && (
                           <div className="bg-gray-100 rounded-lg p-3 inline-block">
@@ -763,14 +1082,33 @@ export default function ChatbotBuilder() {
                           </div>
                         )}
                       </div>
-
+                      
                       {/* Chat Input */}
                       <div className="p-4 border-t">
-                        <input
-                          type="text"
-                          placeholder="Type your message..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
+                        <div className="flex items-center space-x-2">
+                          {agntConfig.enable_file_uploads && (
+                            <button className="text-gray-400 hover:text-gray-600">
+                              <Paperclip className="h-5 w-5" />
+                            </button>
+                          )}
+                          <input
+                            type="text"
+                            placeholder="Type your message..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            style={{ fontSize: widgetSizes[agntConfig.widget_size].fontSize }}
+                          />
+                          {agntConfig.enable_emoji_picker && (
+                            <button className="text-gray-400 hover:text-gray-600">
+                              <Smile className="h-5 w-5" />
+                            </button>
+                          )}
+                          <button 
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ backgroundColor: agntConfig.primary_color }}
+                          >
+                            <Send className="h-4 w-4" style={{ color: agntConfig.text_color }} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -783,4 +1121,3 @@ export default function ChatbotBuilder() {
     </div>
   );
 }
-
