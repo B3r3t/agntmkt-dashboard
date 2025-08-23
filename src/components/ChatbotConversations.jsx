@@ -24,7 +24,7 @@ import {
   Send
 } from 'lucide-react';
 
-export default function ChatbotBuilder() {
+export default function ChatbotConversations() {
   const { organization, branding } = useOrganization();
   const [activeTab, setActiveTab] = useState('conversations');
   const [conversations, setConversations] = useState([]);

@@ -7,7 +7,7 @@ import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import LeadsPage from './components/LeadsPage';
 import AnalyticsPage from './components/AnalyticsPage';
-import ChatbotBuilder from './components/ChatbotBuilder';
+import ChatbotConversations from './components/ChatbotConversations';
 import AdminDashboard from './components/AdminDashboard';
 import ScoringConfigPage from './components/ScoringConfigPage';
 import OnboardingWizard from './components/OnboardingWizard';
@@ -127,7 +127,7 @@ export default function App() {
                 path="chatbots" 
                 element={
                   <ProtectedFeatureRoute feature="chatbots">
-                    <ChatbotBuilder />
+                    <ChatbotConversations />
                   </ProtectedFeatureRoute>
                 } 
               />
