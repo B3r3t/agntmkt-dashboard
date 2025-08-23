@@ -223,7 +223,7 @@ export default function Layout() {
                       className={`h-5 w-5 flex-shrink-0 ${isActive ? '' : 'text-gray-400'}`}
                       style={isActive && branding?.primary_color ? { color: branding.primary_color } : undefined}
                     />
-                    {!sidebarCollapsed && <span className="ml-3">Chatbots</span>}
+                    {!sidebarCollapsed && <span className="ml-3">Chat AGNT</span>}
                   </>
                 )}
               </NavLink>
