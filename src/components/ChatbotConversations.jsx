@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { useParams } from 'react-router-dom';
 import { 
   MessageSquare, 
   ChevronDown, 
@@ -39,6 +40,8 @@ export default function ChatbotConversations() {
     avgSatisfaction: 0,
     todayCount: 0
   });
+
+  const { id } = useParams();
   
   // ENHANCED AGNT Configuration State
   const [agntConfig, setAgntConfig] = useState({
@@ -184,6 +187,7 @@ export default function ChatbotConversations() {
       const { data: chatbots } = await supabase
         .from('chatbots')
         .select('id, name')
+        .eq('id', id)
         .eq('organization_id', organization.id);
       
       const chatbotIds = chatbots?.map(c => c.id) || [];
