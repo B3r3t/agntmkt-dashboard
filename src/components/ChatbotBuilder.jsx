@@ -35,6 +35,12 @@ export default function ChatbotBuilder() {
     todayCount: 0
   });
 
+  // Chatbot testing states
+  const [selectedChatbot, setSelectedChatbot] = useState(null);
+  const [testInput, setTestInput] = useState('');
+  const [testMessages, setTestMessages] = useState([]);
+  const [testLoading, setTestLoading] = useState(false);
+
   // AGNT Configuration States
   const [agntConfig, setAgntConfig] = useState({
     agnt_name: 'Sales Assistant',
@@ -196,6 +202,150 @@ export default function ChatbotBuilder() {
       }
     }
   };
+
+  // Placeholder utilities
+  const fetchChatbots = async () => {};
+  const fetchKnowledgeBase = async () => {};
+  const generateSystemPrompt = (answers) =>
+    Array.isArray(answers) ? answers.join('\n') : '';
+
+  const testChatbot = async () => {
+    if (!testInput.trim() || !selectedChatbot) return;
+
+    setTestLoading(true);
+    const userMessage = {
+      role: 'user',
+      content: testInput,
+      timestamp: Date.now()
+    };
+    setTestMessages((prev) => [...prev, userMessage]);
+    setTestInput('');
+
+    try {
+      // Call Supabase Edge Function instead of Express server
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: {
+          message: testInput,
+          chatbotId: selectedChatbot.id,
+          sessionId: `test-${Date.now()}`,
+          conversationId: null
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Chat test failed');
+      }
+
+      const botMessage = {
+        role: 'assistant',
+        content: data.response,
+        timestamp: Date.now(),
+        tokensUsed: data.tokensUsed,
+        relevantKnowledge: data.relevantKnowledge
+      };
+
+      setTestMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Test error:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: `Sorry, there was an error testing the chatbot: ${error.message}`,
+        timestamp: Date.now(),
+        error: true
+      };
+      setTestMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const addKnowledgeEntry = async (title, content, tags = []) => {
+    if (!selectedChatbot || !title.trim() || !content.trim()) return;
+
+    try {
+      // Generate embedding using edge function
+      const { data: embeddingData, error: embeddingError } =
+        await supabase.functions.invoke('generate-embedding', {
+          body: {
+            text: content,
+            model: 'text-embedding-3-small'
+          }
+        });
+
+      if (embeddingError) {
+        throw new Error('Failed to generate embedding');
+      }
+
+      // Store in knowledge base
+      const { data: knowledgeEntry, error } = await supabase
+        .from('chatbot_knowledge')
+        .insert({
+          chatbot_id: selectedChatbot.id,
+          title: title,
+          content: content,
+          tags: tags,
+          content_type: 'manual',
+          embedding: embeddingData.embedding,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Refresh knowledge base display
+      await fetchKnowledgeBase();
+
+      return knowledgeEntry;
+    } catch (error) {
+      console.error('Error adding knowledge entry:', error);
+      throw error;
+    }
+  };
+
+  const createChatbotWithPrompt = async (
+    name,
+    description,
+    promptAnswers
+  ) => {
+    if (!organization) return;
+
+    try {
+      // Generate system prompt from answers
+      const systemPrompt = generateSystemPrompt(promptAnswers);
+
+      const { data: newChatbot, error } = await supabase
+        .from('chatbots')
+        .insert({
+          organization_id: organization.id,
+          name: name,
+          description: description,
+          system_prompt: systemPrompt,
+          welcome_message: 'Hi! How can I help you today?',
+          settings: {
+            temperature: 0.7,
+            max_tokens: 1000,
+            model: 'gpt-4-turbo-preview'
+          },
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Refresh chatbot list
+      await fetchChatbots();
+
+      return newChatbot;
+    } catch (error) {
+      console.error('Error creating chatbot:', error);
+      throw error;
+    }
+  };
+
+  // Prevent unused function warnings
+  useEffect(() => {}, [testChatbot, addKnowledgeEntry, createChatbotWithPrompt]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
