@@ -121,3 +121,31 @@
     animation: none;
   }
 }
+
+/* Sidebar specific styles */
+@layer utilities {
+  .sidebar-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .nav-item-indicator::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #fb923c, #ea580c);
+    transition: height 0.2s ease;
+  }
+  
+  .nav-item-indicator:hover::before,
+  .nav-item-indicator.active::before {
+    height: 70%;
+  }
+  
+  .nav-item-indicator.active {
+    background: linear-gradient(to right, rgba(251, 146, 60, 0.1), transparent);
+  }
+}
