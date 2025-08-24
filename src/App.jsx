@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard';
 import LeadsPage from './components/LeadsPage';
 import AnalyticsPage from './components/AnalyticsPage';
 import ChatbotBuilder from './components/ChatbotBuilder';
+import ChatbotConversations from './components/ChatbotConversations';
 import AdminDashboard from './components/AdminDashboard';
 import ScoringConfigPage from './components/ScoringConfigPage';
 import OnboardingWizard from './components/OnboardingWizard';
@@ -128,6 +129,15 @@ export default function App() {
                 element={
                   <ProtectedFeatureRoute feature="chatbots">
                     <ChatbotBuilder />
+                  </ProtectedFeatureRoute>
+                } 
+              />
+
+              <Route 
+                path="chatbots/:id/conversations" 
+                element={
+                  <ProtectedFeatureRoute feature="chatbots">
+                    <ChatbotConversations />
                   </ProtectedFeatureRoute>
                 } 
               />
