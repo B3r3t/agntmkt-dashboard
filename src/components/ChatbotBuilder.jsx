@@ -260,8 +260,8 @@ export default function ChatbotBuilder() {
       setSelectedChatbot(newChatbot);
       
     } catch (error) {
-      console.error('Error creating chatbot:', error);
-      alert('Failed to create chatbot. Please try again.');
+      console.error('Error creating chatbot:', error.message, error.details);
+      alert(`Failed to create chatbot: ${error.message}${error.details ? ' - ' + error.details : ''}`);
     }
   };
 
