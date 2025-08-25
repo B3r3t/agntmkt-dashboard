@@ -73,7 +73,6 @@ const TopicAnalyticsCard = ({ organization }) => {
       });
 
       if (error) throw error;
-
       setAnalysis(
         data?.analysis ?? { trending: [], weekly: [], emerging: [] }
       );
