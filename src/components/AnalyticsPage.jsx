@@ -79,14 +79,34 @@ const TopicAnalyticsCard = ({ organization }) => {
       console.log('Edge function error:', error);
 
       if (error) throw error;
-      console.log('Setting analysis to:', data?.analysis);
-      setAnalysis(
-        data?.analysis ?? { trending: [], weekly: [], emerging: [] }
-      );
+
+      // Transform the AI response into the structure expected by the component
+      const transformedAnalysis = {
+        trending:
+          data?.analysis?.keyPhrases?.map((phrase) => ({
+            keyword: phrase.phrase || phrase,
+            count: phrase.frequency || 1,
+            trend: 'stable',
+            trendPercent: 0,
+          })) || [],
+        weekly:
+          data?.analysis?.mainTopics?.map((topic) => ({
+            category: topic.topic || 'Unknown',
+            mentions: topic.frequency || 1,
+          })) || [],
+        emerging:
+          data?.analysis?.emergingConcerns?.map((concern) => ({
+            keyword: concern.concern || concern,
+            trendPercent: 50,
+          })) || [],
+      };
+
+      console.log('Transformed analysis:', transformedAnalysis);
+      setAnalysis(transformedAnalysis);
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
       // Could fallback to basic keyword analysis here if needed
-      setAnalysis(defaultAnalysis);
+      setAnalysis({ trending: [], weekly: [], emerging: [] });
     } finally {
       setLoading(false);
     }
