@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 
 const TopicAnalyticsCard = ({ organization }) => {
+  if (!organization || !organization.id) return null;
   const [analysis, setAnalysis] = useState({
     trending: [],
     weekly: [],
