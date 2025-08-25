@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useNavigate } from 'react-router-dom';
 import { 
   MessageSquare, ChevronDown, ChevronUp, Phone, MapPin,
   Building, Briefcase, Calendar, Star, Clock, User, Bot,
@@ -12,7 +11,6 @@ import {
 
 export default function ChatbotBuilder() {
   const { organization, branding } = useOrganization();
-  const navigate = useNavigate();
   
   // Main navigation state - now includes conversations as main tab
   const [mainTab, setMainTab] = useState('conversations');
