@@ -1,7 +1,325 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { TrendingUp, Users, MessageSquare, Target, Calendar, BarChart3, AlertCircle } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  MessageSquare,
+  Target,
+  Calendar,
+  BarChart3,
+  AlertCircle,
+  Hash,
+  Activity,
+  Minus,
+} from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+const TopicAnalyticsCard = ({ organization }) => {
+  const [topicData, setTopicData] = useState({
+    trending: [],
+    weekly: [],
+    emerging: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState('7d');
+
+  useEffect(() => {
+    if (organization?.id) {
+      fetchTopicAnalytics();
+    }
+  }, [organization, timeRange]);
+
+  const fetchTopicAnalytics = async () => {
+    setLoading(true);
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      if (timeRange === '7d') startDate.setDate(endDate.getDate() - 7);
+      else if (timeRange === '30d') startDate.setDate(endDate.getDate() - 30);
+      else if (timeRange === '90d') startDate.setDate(endDate.getDate() - 90);
+
+      const { data: conversations, error } = await supabase
+        .from('chatbot_conversations')
+        .select('id, conversation_summary, started_at, lead_name, email')
+        .eq('organization_id', organization.id)
+        .gte('started_at', startDate.toISOString())
+        .lte('started_at', endDate.toISOString())
+        .not('conversation_summary', 'is', null);
+
+      if (error) throw error;
+
+      const topicAnalysis = analyzeTopics(conversations, timeRange);
+      setTopicData(topicAnalysis);
+    } catch (error) {
+      console.error('Error fetching topic analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const analyzeTopics = (conversations, range) => {
+    const stopWords = new Set([
+      'the',
+      'is',
+      'at',
+      'which',
+      'on',
+      'and',
+      'a',
+      'an',
+      'as',
+      'are',
+      'was',
+      'were',
+      'to',
+      'for',
+      'of',
+      'with',
+      'in',
+      'it',
+      'by',
+      'from',
+      'can',
+      'how',
+      'what',
+      'when',
+      'where',
+      'why',
+      'who',
+      'will',
+      'would',
+    ]);
+
+    const topicCategories = {
+      pricing: ['price', 'cost', 'expensive', 'cheap', 'discount', 'payment', 'fee'],
+      features: ['feature', 'update', 'integration', 'api', 'dashboard', 'report'],
+      support: ['help', 'support', 'issue', 'problem', 'error', 'broken', 'fix'],
+      sales: ['demo', 'trial', 'purchase', 'buy', 'upgrade', 'plan', 'subscription'],
+      product: ['product', 'service', 'quality', 'performance', 'speed', 'reliability'],
+    };
+
+    const keywordFreq = {};
+    const keywordByDate = {};
+    const categoryCount = {};
+
+    conversations.forEach((conv) => {
+      if (!conv.conversation_summary) return;
+
+      const date = new Date(conv.started_at).toLocaleDateString();
+      const words = conv.conversation_summary
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter((word) => word.length > 3 && !stopWords.has(word));
+
+      words.forEach((word) => {
+        keywordFreq[word] = (keywordFreq[word] || 0) + 1;
+
+        if (!keywordByDate[word]) keywordByDate[word] = {};
+        keywordByDate[word][date] = (keywordByDate[word][date] || 0) + 1;
+
+        Object.entries(topicCategories).forEach(([category, keywords]) => {
+          if (keywords.includes(word)) {
+            categoryCount[category] = (categoryCount[category] || 0) + 1;
+          }
+        });
+      });
+    });
+
+    const midPoint = new Date();
+    midPoint.setDate(midPoint.getDate() - (range === '7d' ? 3.5 : range === '30d' ? 15 : 45));
+
+    const trending = Object.entries(keywordFreq)
+      .map(([keyword, count]) => {
+        const dates = keywordByDate[keyword] || {};
+        let recentCount = 0;
+        let previousCount = 0;
+
+        Object.entries(dates).forEach(([date, cnt]) => {
+          if (new Date(date) > midPoint) {
+            recentCount += cnt;
+          } else {
+            previousCount += cnt;
+          }
+        });
+
+        const trend =
+          recentCount > previousCount
+            ? 'up'
+            : recentCount < previousCount
+            ? 'down'
+            : 'stable';
+        const trendPercent = previousCount > 0 ? Math.round(((recentCount - previousCount) / previousCount) * 100) : 100;
+
+        return {
+          keyword,
+          count,
+          trend,
+          trendPercent,
+          recentCount,
+          previousCount,
+        };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const weeklyData = Object.entries(categoryCount)
+      .map(([category, count]) => ({
+        category: category.charAt(0).toUpperCase() + category.slice(1),
+        mentions: count,
+      }))
+      .sort((a, b) => b.mentions - a.mentions);
+
+    const emerging = trending.filter((t) => t.trend === 'up' && t.trendPercent > 50).slice(0, 5);
+
+    return { trending, weekly: weeklyData, emerging };
+  };
+
+  const primaryColor = organization?.branding?.primary_color || '#ea580c';
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Hash className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Topic Intelligence</h2>
+            <p className="text-sm text-gray-500">What your customers are talking about</p>
+          </div>
+        </div>
+
+        <select
+          value={timeRange}
+          onChange={(e) => setTimeRange(e.target.value)}
+          className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d">Last 90 days</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {topicData.weekly.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Topic Categories</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={topicData.weekly}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="#888" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="#888" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Bar dataKey="mentions" fill={primaryColor} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Trending Topics</h3>
+            <div className="space-y-2">
+              {topicData.trending.slice(0, 8).map((item, idx) => (
+                <div
+                  key={item.keyword}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-gray-400 w-6">#{idx + 1}</span>
+                    <span className="font-medium text-gray-900 capitalize">{item.keyword}</span>
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                      {item.count} mentions
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {item.trend === 'up' && (
+                      <>
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        <span className="text-xs text-green-600 font-medium">+{item.trendPercent}%</span>
+                      </>
+                    )}
+                    {item.trend === 'down' && (
+                      <>
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                        <span className="text-xs text-red-600 font-medium">{item.trendPercent}%</span>
+                      </>
+                    )}
+                    {item.trend === 'stable' && (
+                      <>
+                        <Minus className="h-4 w-4 text-gray-400" />
+                        <span className="text-xs text-gray-500">Stable</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {topicData.emerging.length > 0 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <Activity className="h-5 w-5 text-purple-600 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-purple-900 mb-1">Emerging Topics</h4>
+                  <p className="text-sm text-purple-700 mb-2">These topics are gaining rapid attention:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {topicData.emerging.map((item) => (
+                      <span
+                        key={item.keyword}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-lg text-sm font-medium text-purple-900"
+                      >
+                        {item.keyword}
+                        <span className="text-xs text-purple-600">+{item.trendPercent}%</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="border-t pt-4">
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Quick Insights</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-2xl font-bold text-gray-900">{topicData.trending[0]?.keyword || 'N/A'}</div>
+                <div className="text-xs text-gray-500">Most discussed topic</div>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-2xl font-bold text-gray-900">{topicData.emerging.length}</div>
+                <div className="text-xs text-gray-500">Emerging topics</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function AnalyticsPage() {
   const { organization, loading: orgLoading } = useOrganization();
@@ -323,7 +641,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-scan"></div>
             <div className="relative z-10">
@@ -366,6 +684,9 @@ export default function AnalyticsPage() {
                 </p>
               )}
             </div>
+          </div>
+          <div className="lg:col-span-2">
+            <TopicAnalyticsCard organization={organization} />
           </div>
         </div>
       </div>
