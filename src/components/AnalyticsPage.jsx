@@ -25,7 +25,7 @@ import {
 } from 'recharts';
 
 const TopicAnalyticsCard = ({ organization }) => {
-  const [topicData, setTopicData] = useState({
+  const [analysis, setAnalysis] = useState({
     trending: [],
     weekly: [],
     emerging: [],
@@ -35,157 +35,59 @@ const TopicAnalyticsCard = ({ organization }) => {
 
   useEffect(() => {
     if (organization?.id) {
-      fetchTopicAnalytics();
+      fetchAIAnalysis();
     }
   }, [organization, timeRange]);
 
-  const fetchTopicAnalytics = async () => {
+  const fetchAIAnalysis = async () => {
     setLoading(true);
     try {
-      const endDate = new Date();
-      const startDate = new Date();
-      if (timeRange === '7d') startDate.setDate(endDate.getDate() - 7);
-      else if (timeRange === '30d') startDate.setDate(endDate.getDate() - 30);
-      else if (timeRange === '90d') startDate.setDate(endDate.getDate() - 90);
+      // First, check for cached analysis (less than 4 hours old)
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
-      const { data: conversations, error } = await supabase
-        .from('chatbot_conversations')
-        .select('id, conversation_summary, started_at, lead_name, email')
+      const { data: cached, error: cacheError } = await supabase
+        .from('conversation_analytics')
+        .select('*')
         .eq('organization_id', organization.id)
-        .gte('started_at', startDate.toISOString())
-        .lte('started_at', endDate.toISOString())
-        .not('conversation_summary', 'is', null);
+        .eq('time_range', timeRange)
+        .gte('analysis_date', fourHoursAgo)
+        .order('analysis_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (cached && !cacheError) {
+        // Use cached data
+        setAnalysis(
+          cached?.analysis_data ?? { trending: [], weekly: [], emerging: [] }
+        );
+        setLoading(false);
+        return;
+      }
+
+      // If no cache or stale, trigger new analysis
+      const { data, error } = await supabase.functions.invoke('analyze-conversations', {
+        body: {
+          organizationId: organization.id,
+          timeRange: timeRange,
+        },
+      });
 
       if (error) throw error;
 
-      const topicAnalysis = analyzeTopics(conversations, timeRange);
-      setTopicData(topicAnalysis);
+      setAnalysis(
+        data?.analysis ?? { trending: [], weekly: [], emerging: [] }
+      );
     } catch (error) {
-      console.error('Error fetching topic analytics:', error);
+      console.error('Error fetching AI analysis:', error);
+      // Could fallback to basic keyword analysis here if needed
+      setAnalysis({ trending: [], weekly: [], emerging: [] });
     } finally {
       setLoading(false);
     }
   };
 
-  const analyzeTopics = (conversations, range) => {
-    const stopWords = new Set([
-      'the',
-      'is',
-      'at',
-      'which',
-      'on',
-      'and',
-      'a',
-      'an',
-      'as',
-      'are',
-      'was',
-      'were',
-      'to',
-      'for',
-      'of',
-      'with',
-      'in',
-      'it',
-      'by',
-      'from',
-      'can',
-      'how',
-      'what',
-      'when',
-      'where',
-      'why',
-      'who',
-      'will',
-      'would',
-    ]);
-
-    const topicCategories = {
-      pricing: ['price', 'cost', 'expensive', 'cheap', 'discount', 'payment', 'fee'],
-      features: ['feature', 'update', 'integration', 'api', 'dashboard', 'report'],
-      support: ['help', 'support', 'issue', 'problem', 'error', 'broken', 'fix'],
-      sales: ['demo', 'trial', 'purchase', 'buy', 'upgrade', 'plan', 'subscription'],
-      product: ['product', 'service', 'quality', 'performance', 'speed', 'reliability'],
-    };
-
-    const keywordFreq = {};
-    const keywordByDate = {};
-    const categoryCount = {};
-
-    conversations.forEach((conv) => {
-      if (!conv.conversation_summary) return;
-
-      const date = new Date(conv.started_at).toLocaleDateString();
-      const words = conv.conversation_summary
-        .toLowerCase()
-        .replace(/[^\w\s]/g, ' ')
-        .split(/\s+/)
-        .filter((word) => word.length > 3 && !stopWords.has(word));
-
-      words.forEach((word) => {
-        keywordFreq[word] = (keywordFreq[word] || 0) + 1;
-
-        if (!keywordByDate[word]) keywordByDate[word] = {};
-        keywordByDate[word][date] = (keywordByDate[word][date] || 0) + 1;
-
-        Object.entries(topicCategories).forEach(([category, keywords]) => {
-          if (keywords.includes(word)) {
-            categoryCount[category] = (categoryCount[category] || 0) + 1;
-          }
-        });
-      });
-    });
-
-    const midPoint = new Date();
-    midPoint.setDate(midPoint.getDate() - (range === '7d' ? 3.5 : range === '30d' ? 15 : 45));
-
-    const trending = Object.entries(keywordFreq)
-      .map(([keyword, count]) => {
-        const dates = keywordByDate[keyword] || {};
-        let recentCount = 0;
-        let previousCount = 0;
-
-        Object.entries(dates).forEach(([date, cnt]) => {
-          if (new Date(date) > midPoint) {
-            recentCount += cnt;
-          } else {
-            previousCount += cnt;
-          }
-        });
-
-        const trend =
-          recentCount > previousCount
-            ? 'up'
-            : recentCount < previousCount
-            ? 'down'
-            : 'stable';
-        const trendPercent = previousCount > 0 ? Math.round(((recentCount - previousCount) / previousCount) * 100) : 100;
-
-        return {
-          keyword,
-          count,
-          trend,
-          trendPercent,
-          recentCount,
-          previousCount,
-        };
-      })
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    const weeklyData = Object.entries(categoryCount)
-      .map(([category, count]) => ({
-        category: category.charAt(0).toUpperCase() + category.slice(1),
-        mentions: count,
-      }))
-      .sort((a, b) => b.mentions - a.mentions);
-
-    const emerging = trending.filter((t) => t.trend === 'up' && t.trendPercent > 50).slice(0, 5);
-
-    return { trending, weekly: weeklyData, emerging };
-  };
-
   const primaryColor = organization?.branding?.primary_color || '#ea580c';
+  if (!analysis) return null;
 
   return (
     <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-6">
@@ -217,11 +119,11 @@ const TopicAnalyticsCard = ({ organization }) => {
         </div>
       ) : (
         <div className="space-y-6">
-          {topicData.weekly.length > 0 && (
+          {analysis.weekly.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-3">Topic Categories</h3>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={topicData.weekly}>
+                <BarChart data={analysis.weekly}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="#888" />
                   <YAxis tick={{ fontSize: 12 }} stroke="#888" />
@@ -241,7 +143,7 @@ const TopicAnalyticsCard = ({ organization }) => {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Trending Topics</h3>
             <div className="space-y-2">
-              {topicData.trending.slice(0, 8).map((item, idx) => (
+              {analysis.trending.slice(0, 8).map((item, idx) => (
                 <div
                   key={item.keyword}
                   className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
@@ -279,7 +181,7 @@ const TopicAnalyticsCard = ({ organization }) => {
             </div>
           </div>
 
-          {topicData.emerging.length > 0 && (
+          {analysis.emerging.length > 0 && (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
               <div className="flex items-start gap-3">
                 <Activity className="h-5 w-5 text-purple-600 mt-0.5" />
@@ -287,7 +189,7 @@ const TopicAnalyticsCard = ({ organization }) => {
                   <h4 className="font-medium text-purple-900 mb-1">Emerging Topics</h4>
                   <p className="text-sm text-purple-700 mb-2">These topics are gaining rapid attention:</p>
                   <div className="flex flex-wrap gap-2">
-                    {topicData.emerging.map((item) => (
+                    {analysis.emerging.map((item) => (
                       <span
                         key={item.keyword}
                         className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-lg text-sm font-medium text-purple-900"
@@ -306,11 +208,11 @@ const TopicAnalyticsCard = ({ organization }) => {
             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Quick Insights</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900">{topicData.trending[0]?.keyword || 'N/A'}</div>
+                <div className="text-2xl font-bold text-gray-900">{analysis.trending[0]?.keyword || 'N/A'}</div>
                 <div className="text-xs text-gray-500">Most discussed topic</div>
               </div>
               <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900">{topicData.emerging.length}</div>
+                <div className="text-2xl font-bold text-gray-900">{analysis.emerging.length}</div>
                 <div className="text-xs text-gray-500">Emerging topics</div>
               </div>
             </div>
@@ -685,7 +587,8 @@ export default function AnalyticsPage() {
               )}
             </div>
           </div>
-          <div className="lg:col-span-2">
+          {/* Add the AI Topic Analytics card - spans 2 columns on medium screens and 3 on large */}
+          <div className="md:col-span-2 lg:col-span-3">
             <TopicAnalyticsCard organization={organization} />
           </div>
         </div>
