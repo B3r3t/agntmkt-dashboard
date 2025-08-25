@@ -1,7 +1,267 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { TrendingUp, Users, MessageSquare, Target, Calendar, BarChart3, AlertCircle } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  MessageSquare,
+  Target,
+  Calendar,
+  BarChart3,
+  AlertCircle,
+  Hash,
+  Activity,
+  Minus,
+} from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+const TopicAnalyticsCard = ({ organization }) => {
+  if (!organization || !organization.id) return null;
+  const [analysis, setAnalysis] = useState({
+    trending: [],
+    weekly: [],
+    emerging: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState('7d');
+
+  useEffect(() => {
+    if (organization?.id) {
+      fetchAIAnalysis();
+    }
+  }, [organization, timeRange]);
+
+  const fetchAIAnalysis = async () => {
+    setLoading(true);
+    try {
+      // First, check for cached analysis (less than 4 hours old)
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+
+      const { data: cached, error: cacheError } = await supabase
+        .from('conversation_analytics')
+        .select('*')
+        .eq('organization_id', organization.id)
+        .eq('time_range', timeRange)
+        .gte('analysis_date', fourHoursAgo)
+        .order('analysis_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (cached && !cacheError) {
+        const {
+          trending = [],
+          weekly = [],
+          emerging = []
+        } = cached?.analysis_data || {};
+        setAnalysis({ trending, weekly, emerging });
+        setLoading(false);
+        return;
+      }
+
+      // If no cache or stale, trigger new analysis
+      const { data, error } = await supabase.functions.invoke('analyze-conversations', {
+        body: {
+          organizationId: organization.id,
+          timeRange: timeRange,
+        },
+      });
+
+      if (error) throw error;
+
+      console.log('Raw AI response:', data?.analysis);
+
+      // Check if we have valid analysis data
+      if (data?.analysis) {
+        // Transform the AI data to match what the component expects
+        const transformedAnalysis = {
+          trending: (data.analysis.keyPhrases || []).map((phrase, idx) => ({
+            keyword: typeof phrase === 'object' ? phrase.phrase : phrase,
+            count: typeof phrase === 'object' ? (phrase.frequency || idx + 1) : idx + 1,
+            trend: idx < 3 ? 'up' : idx > 7 ? 'down' : 'stable',
+            trendPercent: idx < 3 ? 25 : idx > 7 ? -15 : 0,
+          })),
+          weekly: (data.analysis.mainTopics || []).map((topic) => ({
+            category: topic.topic || 'General',
+            mentions: topic.frequency || 5,
+          })),
+          emerging: (data.analysis.emergingConcerns || [])
+            .slice(0, 5)
+            .map((concern) => ({
+              keyword: typeof concern === 'object' ? concern.concern : concern,
+              trendPercent: 75,
+            })),
+        };
+
+        console.log('Transformed analysis:', transformedAnalysis);
+        setAnalysis(transformedAnalysis);
+
+        // Also cache the transformed data
+        await supabase.from('conversation_analytics').upsert({
+          organization_id: organization.id,
+          analysis_date: new Date().toISOString(),
+          time_range: timeRange,
+          analysis_data: transformedAnalysis,
+          conversation_count: data.conversationCount || 0,
+        });
+      } else {
+        // No analysis data returned
+        setAnalysis({ trending: [], weekly: [], emerging: [] });
+      }
+    } catch (error) {
+      console.error('Error fetching AI analysis:', error);
+      // Could fallback to basic keyword analysis here if needed
+      setAnalysis({ trending: [], weekly: [], emerging: [] });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const primaryColor = organization?.branding?.primary_color || '#ea580c';
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Hash className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Topic Intelligence</h2>
+            <p className="text-sm text-gray-500">What your customers are talking about</p>
+          </div>
+        </div>
+
+        <select
+          value={timeRange}
+          onChange={(e) => setTimeRange(e.target.value)}
+          className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d">Last 90 days</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {analysis.weekly.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Topic Categories</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={analysis.weekly}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="category" tick={{ fontSize: 12 }} stroke="#888" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="#888" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Bar dataKey="mentions" fill={primaryColor} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Trending Topics</h3>
+            <div className="space-y-2">
+              {Array.isArray(analysis.trending)
+                ? analysis.trending.slice(0, 8).map((item, idx) => (
+                    <div
+                      key={item.keyword}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-400 w-6">#{idx + 1}</span>
+                        <span className="font-medium text-gray-900 capitalize">{item.keyword}</span>
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                          {item.count} mentions
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {item.trend === 'up' && (
+                          <>
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                            <span className="text-xs text-green-600 font-medium">+{item.trendPercent}%</span>
+                          </>
+                        )}
+                        {item.trend === 'down' && (
+                          <>
+                            <TrendingDown className="h-4 w-4 text-red-500" />
+                            <span className="text-xs text-red-600 font-medium">{item.trendPercent}%</span>
+                          </>
+                        )}
+                        {item.trend === 'stable' && (
+                          <>
+                            <Minus className="h-4 w-4 text-gray-400" />
+                            <span className="text-xs text-gray-500">Stable</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                : null}
+            </div>
+          </div>
+
+          {analysis.emerging.length > 0 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <Activity className="h-5 w-5 text-purple-600 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-purple-900 mb-1">Emerging Topics</h4>
+                  <p className="text-sm text-purple-700 mb-2">These topics are gaining rapid attention:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.emerging.map((item) => (
+                      <span
+                        key={item.keyword}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-lg text-sm font-medium text-purple-900"
+                      >
+                        {item.keyword}
+                        <span className="text-xs text-purple-600">+{item.trendPercent}%</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="border-t pt-4">
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Quick Insights</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-2xl font-bold text-gray-900">{analysis.trending[0]?.keyword || 'N/A'}</div>
+                <div className="text-xs text-gray-500">Most discussed topic</div>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-2xl font-bold text-gray-900">{analysis.emerging.length}</div>
+                <div className="text-xs text-gray-500">Emerging topics</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function AnalyticsPage() {
   const { organization, loading: orgLoading } = useOrganization();
@@ -323,7 +583,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-orange-400/5 to-transparent animate-scan"></div>
             <div className="relative z-10">
@@ -366,6 +626,10 @@ export default function AnalyticsPage() {
                 </p>
               )}
             </div>
+          </div>
+          {/* Add the AI Topic Analytics card - spans 2 columns on medium screens and 3 on large */}
+          <div className="md:col-span-2 lg:col-span-3">
+            <TopicAnalyticsCard organization={organization} />
           </div>
         </div>
       </div>

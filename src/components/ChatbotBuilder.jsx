@@ -1,106 +1,104 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { 
-  MessageSquare, 
-  Plus, 
-  Settings, 
-  Eye, 
-  Code, 
-  FileText,
-  Send,
-  Bot,
-  Edit3,
-  Trash2,
-  Upload,
-  X
+  MessageSquare, ChevronDown, ChevronUp, Phone, MapPin,
+  Building, Briefcase, Calendar, Star, Clock, User, Bot,
+  Settings, Eye, Search, Upload, Sliders, Paperclip, Smile,
+  Send, FileText, Code, Palette, Plus, X, Copy, Check,
+  Database, Mail, ExternalLink, Loader2, AlertCircle
 } from 'lucide-react';
-
-// Prompt Builder Templates
-const PROMPT_TEMPLATES = {
-  business_context: [
-    { key: 'business_type', question: 'What type of business are you?', placeholder: 'e.g., salon franchise, tech company, consulting firm' },
-    { key: 'target_customers', question: 'Who are your main customers?', placeholder: 'e.g., beauty professionals, small business owners, students' },
-    { key: 'customer_values', question: 'What do your customers value most?', placeholder: 'e.g., quality, convenience, expertise, affordability' },
-    { key: 'unique_selling_prop', question: 'What makes your business unique?', placeholder: 'e.g., premium locations, 24/7 support, industry expertise' }
-  ],
-  tone_and_voice: [
-    { key: 'formality', question: 'How formal should responses be?', type: 'select', options: ['Very formal', 'Professional but friendly', 'Casual and approachable', 'Fun and energetic'] },
-    { key: 'personality', question: 'What personality traits should your bot have?', placeholder: 'e.g., helpful, knowledgeable, enthusiastic, patient' },
-    { key: 'communication_style', question: 'Any specific phrases or communication style?', placeholder: 'e.g., use "Of course!" instead of "Yes", avoid technical jargon' },
-    { key: 'use_emojis', question: 'Should the bot use emojis?', type: 'select', options: ['Never', 'Rarely', 'Occasionally', 'Frequently'] }
-  ],
-  rules_and_boundaries: [
-    { key: 'allowed_topics', question: 'What topics can the bot discuss?', placeholder: 'e.g., pricing, services, booking, general inquiries' },
-    { key: 'restricted_topics', question: 'What topics should be avoided?', placeholder: 'e.g., competitor comparisons, medical advice, legal advice' },
-    { key: 'lead_collection_trigger', question: 'When should the bot collect contact info?', placeholder: 'e.g., when someone asks about pricing, requests a demo, shows high interest' },
-    { key: 'escalation_triggers', question: 'When should the bot transfer to a human?', placeholder: 'e.g., complaints, complex technical issues, pricing negotiations' }
-  ],
-  lead_collection: [
-    { key: 'required_fields', question: 'What information is required from leads?', type: 'checkbox', options: ['Name', 'Email', 'Phone', 'Company', 'Location/ZIP'] },
-    { key: 'optional_fields', question: 'What additional info would be helpful?', type: 'checkbox', options: ['Job title', 'Company size', 'Budget range', 'Timeline', 'Specific interests'] },
-    { key: 'collection_approach', question: 'How should the bot collect this info?', type: 'select', options: ['All at once', 'Gradually through conversation', 'Only when specifically requested'] }
-  ]
-};
 
 export default function ChatbotBuilder() {
   const { organization, branding } = useOrganization();
-  const navigate = useNavigate();
+  
+  // Main navigation state - now includes conversations as main tab
+  const [mainTab, setMainTab] = useState('conversations');
+  const [configSubTab, setConfigSubTab] = useState('overview');
+  
+  // Existing chatbot states
   const [chatbots, setChatbots] = useState([]);
+  const [selectedChatbot, setSelectedChatbot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedChatbot, setSelectedChatbot] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
   
-  // Create/Edit States
-  const [chatbotData, setChatbotData] = useState({
-    name: '',
-    description: '',
-    welcome_message: 'Hi! How can I help you today?',
-    system_prompt: '',
-    settings: {
-      temperature: 0.7,
-      max_tokens: 1000,
-      model: 'gpt-4-turbo-preview'
-    }
+  // Conversation states (from ChatbotConversations)
+  const [conversations, setConversations] = useState([]);
+  const [expandedConversation, setExpandedConversation] = useState(null);
+  const [conversationMessages, setConversationMessages] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [stats, setStats] = useState({
+    total: 0,
+    withLeads: 0,
+    avgSatisfaction: 0,
+    todayCount: 0
   });
   
-  // Guided Prompt Builder States
-  const [promptAnswers, setPromptAnswers] = useState({});
-  const [currentPromptStep, setCurrentPromptStep] = useState('business_context');
-  const [showPromptWizard, setShowPromptWizard] = useState(false);
-  
-  // Knowledge Base States
-  const [knowledgeBase, setKnowledgeBase] = useState([]);
+  // Knowledge base states (keep existing)
+  const [knowledgeItems, setKnowledgeItems] = useState([]);
+  const [showAddKnowledge, setShowAddKnowledge] = useState(false);
   const [newKnowledgeTitle, setNewKnowledgeTitle] = useState('');
   const [newKnowledgeContent, setNewKnowledgeContent] = useState('');
-  const [showAddKnowledge, setShowAddKnowledge] = useState(false);
   
-  // Testing States
+  // Test chat states (keep existing)
   const [testMessages, setTestMessages] = useState([]);
   const [testInput, setTestInput] = useState('');
   const [testLoading, setTestLoading] = useState(false);
-
+  
+  // Appearance configuration state (NEW - consolidated)
+  const [appearanceConfig, setAppearanceConfig] = useState({
+    // Basic settings
+    agnt_name: 'Sales Assistant',
+    support_email: 'support@company.com',
+    agnt_logo: null,
+    
+    // Widget appearance
+    primary_color: branding?.primary_color || '#ea580c',
+    text_color: '#ffffff',
+    bg_color: '#ffffff',
+    widget_size: 'medium',
+    widget_position: 'bottom-right',
+    bubble_animation: 'bounce',
+    
+    // Messages
+    welcome_message: 'Hi! How can I help you today?',
+    offline_message: 'We\'re currently offline. Please leave a message!',
+    initial_greeting: 'Have a question? Click here to chat!',
+    
+    // Features
+    show_typing_indicator: true,
+    enable_file_uploads: false,
+    enable_emoji_picker: true,
+    sound_notifications: true,
+    
+    // Business hours
+    business_hours_enabled: false,
+    business_hours: {
+      monday: { enabled: true, start: '09:00', end: '17:00' },
+      tuesday: { enabled: true, start: '09:00', end: '17:00' },
+      wednesday: { enabled: true, start: '09:00', end: '17:00' },
+      thursday: { enabled: true, start: '09:00', end: '17:00' },
+      friday: { enabled: true, start: '09:00', end: '17:00' },
+      saturday: { enabled: false, start: '09:00', end: '17:00' },
+      sunday: { enabled: false, start: '09:00', end: '17:00' }
+    }
+  });
+  
+  const [isSavingAppearance, setIsSavingAppearance] = useState(false);
+  const [appearancePreviewState, setAppearancePreviewState] = useState('closed');
+  
+  // Initialize - fetch chatbots
   useEffect(() => {
-    if (organization) {
+    if (organization?.id) {
       fetchChatbots();
     }
   }, [organization]);
-
-  useEffect(() => {
-    if (selectedChatbot) {
-      fetchKnowledgeBase();
-      // Add welcome message to test
-      setTestMessages([{
-        role: 'assistant',
-        content: selectedChatbot.welcome_message || 'Hi! How can I help you today?',
-        timestamp: Date.now()
-      }]);
-    }
-  }, [selectedChatbot]);
-
+  
+  // Fetch all chatbots for the organization
   const fetchChatbots = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('chatbots')
@@ -113,14 +111,137 @@ export default function ChatbotBuilder() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      
       setChatbots(data || []);
+      
+      // Auto-select first chatbot if none selected
+      if (data?.length > 0 && !selectedChatbot) {
+        setSelectedChatbot(data[0]);
+      }
     } catch (error) {
       console.error('Error fetching chatbots:', error);
     } finally {
       setLoading(false);
     }
   };
-
+  
+  // When chatbot is selected, load its data
+  useEffect(() => {
+    if (selectedChatbot?.id) {
+      // Load conversations if on conversations tab
+      if (mainTab === 'conversations') {
+        fetchConversations();
+      }
+      
+      // Load configuration data
+      if (mainTab === 'configuration') {
+        fetchKnowledgeBase();
+        loadChatbotSettings();
+      }
+    }
+  }, [selectedChatbot, mainTab]);
+  
+  // Fetch conversations with proper stats
+  const fetchConversations = async () => {
+    if (!selectedChatbot) return;
+    
+    setConversationsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('chatbot_conversations')
+        .select(`
+          id,
+          session_id,
+          visitor_name,
+          visitor_email,
+          started_at,
+          ended_at,
+          message_count,
+          satisfaction_rating,
+          conversation_summary,
+          lead_name,
+          email,
+          phone,
+          company,
+          collected_at
+        `)
+        .eq('chatbot_id', selectedChatbot.id)
+        .order('started_at', { ascending: false })
+        .limit(100);
+      
+      if (error) throw error;
+      
+      setConversations(data || []);
+      calculateStats(data || []);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setConversationsLoading(false);
+    }
+  };
+  
+  // Calculate conversation statistics
+  const calculateStats = (convData) => {
+    const today = new Date().toDateString();
+    const todayConvs = convData.filter(c => 
+      new Date(c.started_at || c.collected_at).toDateString() === today
+    );
+    
+    const withLeads = convData.filter(c => 
+      c.email || c.visitor_email || c.lead_name
+    );
+    
+    const ratings = convData
+      .filter(c => c.satisfaction_rating)
+      .map(c => c.satisfaction_rating);
+    
+    setStats({
+      total: convData.length,
+      withLeads: withLeads.length,
+      avgSatisfaction: ratings.length > 0 
+        ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+        : 0,
+      todayCount: todayConvs.length
+    });
+  };
+  
+  // Fetch messages for a specific conversation (lazy load)
+  const fetchConversationMessages = async (conversationId) => {
+    if (conversationMessages[conversationId]) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('chatbot_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      
+      setConversationMessages(prev => ({
+        ...prev,
+        [conversationId]: data || []
+      }));
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setConversationMessages(prev => ({
+        ...prev,
+        [conversationId]: []
+      }));
+    }
+  };
+  
+  // Toggle conversation expansion
+  const toggleConversation = async (convId) => {
+    if (expandedConversation === convId) {
+      setExpandedConversation(null);
+    } else {
+      setExpandedConversation(convId);
+      await fetchConversationMessages(convId);
+    }
+  };
+  
+  // Fetch knowledge base items
   const fetchKnowledgeBase = async () => {
     if (!selectedChatbot) return;
     
@@ -133,152 +254,118 @@ export default function ChatbotBuilder() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setKnowledgeBase(data || []);
+      setKnowledgeItems(data || []);
     } catch (error) {
       console.error('Error fetching knowledge base:', error);
     }
   };
-
-  const generateSystemPrompt = (answers) => {
-    let prompt = `## Define Business Context\n`;
-    prompt += `Your task is to provide customer support for ${answers.business_type || 'this business'}`;
-    
-    if (answers.target_customers) {
-      prompt += `.\n\nOur customers include:\n${answers.target_customers}`;
-    }
-    
-    if (answers.customer_values) {
-      prompt += `\n\nThese customers value ${answers.customer_values}.`;
-    }
-    
-    if (answers.unique_selling_prop) {
-      prompt += `\n\nWhat makes us unique: ${answers.unique_selling_prop}`;
-    }
-    
-    prompt += `\n\n---\n\n## Tone and Language\n`;
-    
-    const formalityMap = {
-      'Very formal': 'formal and professional',
-      'Professional but friendly': 'warm, friendly, supportive, professional, and encouraging',
-      'Casual and approachable': 'casual, friendly, and approachable',
-      'Fun and energetic': 'fun, energetic, and enthusiastic'
-    };
-    
-    prompt += `Communicate in a ${formalityMap[answers.formality] || 'professional yet friendly'} tone.`;
-    
-    if (answers.personality) {
-      prompt += ` Be ${answers.personality}.`;
-    }
-    
-    if (answers.communication_style) {
-      prompt += `\n\n${answers.communication_style}`;
-    }
-    
-    const emojiMap = {
-      'Never': 'Do not use emojis.',
-      'Rarely': 'Use emojis very sparingly, only when absolutely appropriate.',
-      'Occasionally': 'Use appropriate emojis occasionally to add warmth.',
-      'Frequently': 'Use emojis frequently to create a friendly, engaging experience.'
-    };
-    
-    if (answers.use_emojis) {
-      prompt += `\n\n${emojiMap[answers.use_emojis]}`;
-    }
-    
-    prompt += `\n\n---\n\n## Rules of Engagement\n`;
-    
-    if (answers.allowed_topics) {
-      prompt += `You can discuss: ${answers.allowed_topics}\n`;
-    }
-    
-    if (answers.restricted_topics) {
-      prompt += `Avoid discussing: ${answers.restricted_topics}\n`;
-    }
-    
-    if (answers.lead_collection_trigger) {
-      prompt += `\nCollect contact information when: ${answers.lead_collection_trigger}`;
-      
-      if (answers.required_fields) {
-        const fields = Array.isArray(answers.required_fields) ? answers.required_fields.join(', ') : answers.required_fields;
-        prompt += `\nRequired information: ${fields}`;
-      }
-      
-      if (answers.optional_fields) {
-        const fields = Array.isArray(answers.optional_fields) ? answers.optional_fields.join(', ') : answers.optional_fields;
-        prompt += `\nAdditional helpful information: ${fields}`;
-      }
-    }
-    
-    if (answers.escalation_triggers) {
-      prompt += `\n\nEscalate to human support when: ${answers.escalation_triggers}`;
-    }
-    
-    prompt += `\n\n---\n\n## Knowledge Base\nYou have access to the company's knowledge base to answer questions accurately. Always consult the knowledge base before escalating or making assumptions.`;
-    
-    return prompt;
-  };
-  const createChatbot = async () => {
-    if (!chatbotData.name.trim()) return;
+  
+  // Load chatbot settings including appearance
+  const loadChatbotSettings = async () => {
+    if (!selectedChatbot) return;
     
     try {
-      const { data: newChatbot, error } = await supabase
-        .from('chatbots')
-        .insert({
-          organization_id: organization.id,
-          name: chatbotData.name,
-          description: chatbotData.description,
-          system_prompt: chatbotData.system_prompt,
-          welcome_message: chatbotData.welcome_message,
-          settings: chatbotData.settings,
-          is_active: true
-        })
-        .select()
+      // Load widget settings from chatbot
+      if (selectedChatbot.widget_settings) {
+        setAppearanceConfig(prev => ({
+          ...prev,
+          ...selectedChatbot.widget_settings,
+          agnt_name: selectedChatbot.name,
+          primary_color: selectedChatbot.theme_color || prev.primary_color,
+          welcome_message: selectedChatbot.welcome_message || prev.welcome_message
+        }));
+      }
+      
+      // Load organization branding as defaults
+      const { data: brandingData } = await supabase
+        .from('client_branding')
+        .select('*')
+        .eq('organization_id', organization.id)
         .single();
+      
+      if (brandingData && !selectedChatbot.widget_settings) {
+        setAppearanceConfig(prev => ({
+          ...prev,
+          primary_color: brandingData.primary_color || prev.primary_color,
+          secondary_color: brandingData.secondary_color,
+          accent_color: brandingData.accent_color,
+          font_family: brandingData.font_family,
+          agnt_logo: brandingData.logo_url
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+  
+  // Save appearance configuration
+  const saveAppearanceConfig = async () => {
+    if (!selectedChatbot) return;
+    
+    setIsSavingAppearance(true);
+    try {
+      // Prepare widget_settings object
+      const widgetSettings = {
+        widget_size: appearanceConfig.widget_size,
+        widget_position: appearanceConfig.widget_position,
+        bubble_animation: appearanceConfig.bubble_animation,
+        text_color: appearanceConfig.text_color,
+        bg_color: appearanceConfig.bg_color,
+        show_typing_indicator: appearanceConfig.show_typing_indicator,
+        enable_file_uploads: appearanceConfig.enable_file_uploads,
+        enable_emoji_picker: appearanceConfig.enable_emoji_picker,
+        sound_notifications: appearanceConfig.sound_notifications,
+        initial_greeting: appearanceConfig.initial_greeting,
+        offline_message: appearanceConfig.offline_message,
+        business_hours_enabled: appearanceConfig.business_hours_enabled,
+        business_hours: appearanceConfig.business_hours,
+        support_email: appearanceConfig.support_email,
+        agnt_logo: appearanceConfig.agnt_logo
+      };
+      
+      // Update chatbot record
+      const { error } = await supabase
+        .from('chatbots')
+        .update({
+          name: appearanceConfig.agnt_name,
+          theme_color: appearanceConfig.primary_color,
+          welcome_message: appearanceConfig.welcome_message,
+          widget_settings: widgetSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedChatbot.id);
       
       if (error) throw error;
       
-      // Refresh chatbot list
-      await fetchChatbots();
+      // Update local state
+      setSelectedChatbot(prev => ({
+        ...prev,
+        name: appearanceConfig.agnt_name,
+        theme_color: appearanceConfig.primary_color,
+        welcome_message: appearanceConfig.welcome_message,
+        widget_settings: widgetSettings
+      }));
       
-      // Reset form
-      setChatbotData({
-        name: '',
-        description: '',
-        welcome_message: 'Hi! How can I help you today?',
-        system_prompt: '',
-        settings: {
-          temperature: 0.7,
-          max_tokens: 1000,
-          model: 'gpt-4-turbo-preview'
-        }
-      });
-      setPromptAnswers({});
-      setShowCreateModal(false);
-      setShowPromptWizard(false);
-      
-      // Auto-select the new chatbot
-      setSelectedChatbot(newChatbot);
-      
+      alert('Appearance settings saved successfully!');
     } catch (error) {
-      console.error('Error creating chatbot:', error.message, error.details);
-      alert(`Failed to create chatbot: ${error.message}${error.details ? ' - ' + error.details : ''}`);
+      console.error('Error saving appearance:', error);
+      alert('Failed to save appearance settings');
+    } finally {
+      setIsSavingAppearance(false);
     }
   };
-
-  const handlePromptWizardComplete = () => {
-    const generatedPrompt = generateSystemPrompt(promptAnswers);
-    setChatbotData(prev => ({
-      ...prev,
-      system_prompt: generatedPrompt
-    }));
-    setShowPromptWizard(false);
-  };
-
+  
+  // Test chat function
   const testChatbot = async () => {
     if (!testInput.trim() || !selectedChatbot) return;
     
     setTestLoading(true);
-    const userMessage = { role: 'user', content: testInput, timestamp: Date.now() };
+    const userMessage = { 
+      role: 'user', 
+      content: testInput, 
+      timestamp: Date.now() 
+    };
+    
     setTestMessages(prev => [...prev, userMessage]);
     setTestInput('');
     
@@ -292,9 +379,7 @@ export default function ChatbotBuilder() {
         }
       });
       
-      if (error) {
-        throw new Error(error.message || 'Chat test failed');
-      }
+      if (error) throw error;
       
       const botMessage = {
         role: 'assistant',
@@ -305,12 +390,11 @@ export default function ChatbotBuilder() {
       };
       
       setTestMessages(prev => [...prev, botMessage]);
-      
     } catch (error) {
       console.error('Test error:', error);
       const errorMessage = {
         role: 'assistant',
-        content: `Sorry, there was an error testing the chatbot: ${error.message}`,
+        content: `Sorry, there was an error: ${error.message}`,
         timestamp: Date.now(),
         error: true
       };
@@ -319,12 +403,12 @@ export default function ChatbotBuilder() {
       setTestLoading(false);
     }
   };
-
+  
+  // Add knowledge entry
   const addKnowledgeEntry = async () => {
     if (!selectedChatbot || !newKnowledgeTitle.trim() || !newKnowledgeContent.trim()) return;
     
     try {
-      // Generate embedding using edge function
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('generate-embedding', {
         body: {
           text: newKnowledgeContent,
@@ -332,12 +416,9 @@ export default function ChatbotBuilder() {
         }
       });
       
-      if (embeddingError) {
-        throw new Error('Failed to generate embedding');
-      }
+      if (embeddingError) throw embeddingError;
       
-      // Store in knowledge base
-      const { data: knowledgeEntry, error } = await supabase
+      const { error } = await supabase
         .from('chatbot_knowledge')
         .insert({
           chatbot_id: selectedChatbot.id,
@@ -346,718 +427,938 @@ export default function ChatbotBuilder() {
           content_type: 'manual',
           embedding: embeddingData.embedding,
           is_active: true
-        })
-        .select()
-        .single();
+        });
       
       if (error) throw error;
       
-      // Refresh knowledge base display
       await fetchKnowledgeBase();
-      
-      // Reset form
       setNewKnowledgeTitle('');
       setNewKnowledgeContent('');
       setShowAddKnowledge(false);
       
+      alert('Knowledge entry added successfully!');
     } catch (error) {
-      console.error('Error adding knowledge entry:', error);
-      alert('Failed to add knowledge entry. Please try again.');
+      console.error('Error adding knowledge:', error);
+      alert('Failed to add knowledge entry');
     }
   };
-
-  const generateEmbedCode = (chatbot) => {
-    const baseUrl = window.location.origin;
-    const iframeCode = `<iframe 
-  src="${baseUrl}/chat-iframe.html?chatbot=${chatbot.id}" 
-  width="100%" 
-  height="600" 
-  frameborder="0"
-  allow="microphone">
-</iframe>`;
-    
-    const scriptCode = `<script 
-  src="${baseUrl}/chat-widget.js" 
-  data-chatbot-id="${chatbot.id}"
-  data-position="bottom-right">
-</script>`;
-    
-    return { iframeCode, scriptCode };
+  
+  // Format date helper
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
-
-  const deleteChatbot = async (chatbotId) => {
-    if (!confirm('Are you sure you want to delete this chatbot? This action cannot be undone.')) {
-      return;
-    }
+  
+  // Filter conversations
+  const filteredConversations = conversations.filter(conv => {
+    const matchesSearch = 
+      (conv.lead_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       conv.visitor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       conv.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       conv.visitor_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       conv.conversation_summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       conv.session_id?.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    try {
-      const { error } = await supabase
-        .from('chatbots')
-        .delete()
-        .eq('id', chatbotId);
-      
-      if (error) throw error;
-      
-      // Refresh list and clear selection if needed
-      await fetchChatbots();
-      if (selectedChatbot?.id === chatbotId) {
-        setSelectedChatbot(null);
-      }
-      
-    } catch (error) {
-      console.error('Error deleting chatbot:', error);
-      alert('Failed to delete chatbot. Please try again.');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading chatbots...</div>
-      </div>
-    );
-  }
+    const matchesFilter = 
+      filterType === 'all' ||
+      (filterType === 'with_leads' && (conv.email || conv.visitor_email)) ||
+      (filterType === 'no_leads' && !conv.email && !conv.visitor_email) ||
+      (filterType === 'high_satisfaction' && conv.satisfaction_rating >= 4);
+    
+    return matchesSearch && matchesFilter;
+  });
+  
+  const primaryColor = appearanceConfig.primary_color || branding?.primary_color || '#ea580c';
+  
+  // Main render
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="px-4 py-6 sm:px-0">
-        {!selectedChatbot ? (
-          // Overview - List of chatbots
-          <>
-            <div className="sm:flex sm:items-center">
-              <div className="sm:flex-auto">
-                <h1 className="text-2xl font-bold text-gray-900">AI Chatbots</h1>
-                <p className="mt-2 text-sm text-gray-700">
-                  Create and manage AI-powered chatbots for your website.
-                </p>
-              </div>
-              <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300"
-                  style={{
-                    backgroundColor: branding?.primary_color || '#EA580C',
-                    borderColor: branding?.primary_color || '#EA580C'
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Chatbot
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              {chatbots.length === 0 ? (
-                <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-12 text-center">
-                  <Bot className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">No chatbots yet</h3>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Get started by creating your first AI chatbot.
-                  </p>
-                  <div className="mt-6">
-                    <button
-                      onClick={() => setShowCreateModal(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all duration-300"
-                      style={{
-                        backgroundColor: branding?.primary_color || '#EA580C'
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Chatbot
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {chatbots.map((chatbot) => (
-                    <div
-                      key={chatbot.id}
-                      className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 p-6 cursor-pointer relative group"
-                    >
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteChatbot(chatbot.id);
-                          }}
-                          className="p-1 text-gray-400 hover:text-red-500 rounded"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <div onClick={() => setSelectedChatbot(chatbot)}>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                              <MessageSquare className="h-8 w-8 text-blue-500" />
-                            </div>
-                            <div className="ml-3">
-                              <h3 className="text-lg font-medium text-gray-900 truncate">
-                                {chatbot.name}
-                              </h3>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-                          {chatbot.description || 'No description provided'}
-                        </p>
-                        
-                        <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-                          <span>
-                            {chatbot.chatbot_knowledge?.[0]?.count || 0} knowledge items
-                          </span>
-                          <span>
-                            {chatbot.chatbot_conversations?.[0]?.count || 0} conversations
-                          </span>
-                        </div>
-                        
-                        <div className="mt-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            chatbot.is_active 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {chatbot.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          // Chatbot Detail View
-          <div>
-            <div className="mb-6">
-              <button
-                onClick={() => setSelectedChatbot(null)}
-                className="text-sm text-gray-500 hover:text-gray-700 flex items-center"
+        {/* Header with chatbot selector */}
+        <div className="sm:flex sm:items-center mb-6">
+          <div className="sm:flex-auto">
+            <h1 className="text-2xl font-bold text-gray-900">Chat AGNT</h1>
+            <p className="mt-2 text-sm text-gray-700">
+              Manage your AI chatbot conversations and configuration
+            </p>
+          </div>
+          
+          {/* Chatbot selector or create button */}
+          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+            {chatbots.length > 0 ? (
+              <select
+                value={selectedChatbot?.id || ''}
+                onChange={(e) => {
+                  const bot = chatbots.find(b => b.id === e.target.value);
+                  setSelectedChatbot(bot);
+                  setTestMessages([]); // Clear test messages on switch
+                }}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               >
-                ← Back to chatbots
+                <option value="">Select a chatbot</option>
+                {chatbots.map(bot => (
+                  <option key={bot.id} value={bot.id}>
+                    {bot.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Chatbot
               </button>
-              <div className="flex justify-between items-start mt-2">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{selectedChatbot.name}</h1>
-                  <p className="text-sm text-gray-600 mt-1">{selectedChatbot.description}</p>
-                </div>
-                <button
-                  onClick={() => navigate(`/chatbots/${selectedChatbot.id}/conversations`)}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  View Conversations
-                </button>
-              </div>
-            </div>
-            
-            {/* Tabs */}
+            )}
+          </div>
+        </div>
+        
+        {/* Only show tabs if we have a selected chatbot */}
+        {selectedChatbot ? (
+          <>
+            {/* Main Tabs */}
             <div className="border-b border-gray-200 mb-6">
               <nav className="-mb-px flex space-x-8">
-                {[
-                  { key: 'overview', label: 'Overview', icon: Eye },
-                  { key: 'knowledge', label: 'Knowledge Base', icon: FileText },
-                  { key: 'test', label: 'Test Chat', icon: MessageSquare },
-                  { key: 'embed', label: 'Embed Code', icon: Code }
-                ].map(tab => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
-                        activeTab === tab.key
-                          ? 'border-orange-500 text-orange-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                      style={
-                        activeTab === tab.key && branding?.primary_color
-                          ? { borderBottomColor: branding.primary_color, color: branding.primary_color }
-                          : undefined
-                      }
-                    >
-                      <Icon className="h-4 w-4 mr-2" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
+                <button
+                  onClick={() => setMainTab('conversations')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    mainTab === 'conversations'
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                  style={mainTab === 'conversations' ? 
+                    { borderBottomColor: primaryColor, color: primaryColor } : {}}
+                >
+                  Conversations
+                </button>
+                <button
+                  onClick={() => setMainTab('configuration')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    mainTab === 'configuration'
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                  style={mainTab === 'configuration' ? 
+                    { borderBottomColor: primaryColor, color: primaryColor } : {}}
+                >
+                  AGNT Configuration
+                </button>
               </nav>
             </div>
+            
             {/* Tab Content */}
-            {activeTab === 'overview' && (
+            {mainTab === 'conversations' ? (
+              /* Conversations Tab Content */
               <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-medium mb-4">Chatbot Statistics</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {selectedChatbot.chatbot_conversations?.[0]?.count || 0}
-                      </div>
-                      <div className="text-sm text-gray-600">Total Conversations</div>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-green-600">
-                        {selectedChatbot.chatbot_knowledge?.[0]?.count || 0}
-                      </div>
-                      <div className="text-sm text-gray-600">Knowledge Items</div>
-                    </div>
-                    <div className="bg-purple-50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {selectedChatbot.settings?.model || 'GPT-4'}
-                      </div>
-                      <div className="text-sm text-gray-600">AI Model</div>
-                    </div>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-blue-500"></div>
+                    <MessageSquare className="h-8 w-8 text-blue-500 mb-2" />
+                    <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                    <div className="text-sm text-gray-500">Total Conversations</div>
+                  </div>
+                  
+                  <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-green-500"></div>
+                    <User className="h-8 w-8 text-green-500 mb-2" />
+                    <div className="text-2xl font-bold text-gray-900">{stats.withLeads}</div>
+                    <div className="text-sm text-gray-500">Converted to Leads</div>
+                  </div>
+                  
+                  <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-purple-500"></div>
+                    <Star className="h-8 w-8 text-purple-500 mb-2" />
+                    <div className="text-2xl font-bold text-gray-900">{stats.avgSatisfaction}</div>
+                    <div className="text-sm text-gray-500">Avg Satisfaction</div>
+                  </div>
+                  
+                  <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-white/80 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500"></div>
+                    <Calendar className="h-8 w-8 text-orange-500" />
+                    <div className="text-2xl font-bold text-gray-900">{stats.todayCount}</div>
+                    <div className="text-sm text-gray-500">Today's Chats</div>
                   </div>
                 </div>
                 
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-medium mb-4">System Prompt</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {selectedChatbot.system_prompt}
-                    </pre>
+                {/* Conversations List */}
+                <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg">
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900">Recent Conversations</h2>
+                      <div className="flex gap-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search conversations..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                        <select
+                          value={filterType}
+                          onChange={(e) => setFilterType(e.target.value)}
+                          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          <option value="all">All Conversations</option>
+                          <option value="with_leads">With Leads</option>
+                          <option value="no_leads">No Lead Info</option>
+                          <option value="high_satisfaction">High Satisfaction</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {conversationsLoading ? (
+                      <div className="text-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto" />
+                        <p className="mt-2 text-gray-500">Loading conversations...</p>
+                      </div>
+                    ) : filteredConversations.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No conversations found
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredConversations.map((conv) => (
+                          <div
+                            key={conv.id}
+                            className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50/50 transition-all"
+                          >
+                            <div
+                              className="cursor-pointer"
+                              onClick={() => toggleConversation(conv.id)}
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-gray-900">
+                                      {conv.visitor_name || conv.lead_name || 'Anonymous Visitor'}
+                                    </h3>
+                                    {(conv.email || conv.visitor_email) && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Lead Captured
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
+                                    {(conv.email || conv.visitor_email) && (
+                                      <span className="flex items-center gap-1">
+                                        <Mail className="h-3 w-3" />
+                                        {conv.email || conv.visitor_email}
+                                      </span>
+                                    )}
+                                    {conv.phone && (
+                                      <span className="flex items-center gap-1">
+                                        <Phone className="h-3 w-3" />
+                                        {conv.phone}
+                                      </span>
+                                    )}
+                                    {conv.company && (
+                                      <span className="flex items-center gap-1">
+                                        <Building className="h-3 w-3" />
+                                        {conv.company}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {conv.conversation_summary && (
+                                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                                      {conv.conversation_summary}
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  <div className="text-right">
+                                    <p className="text-xs text-gray-500">
+                                      {formatDate(conv.started_at || conv.collected_at)}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {conv.message_count || 0} messages
+                                    </p>
+                                    {conv.satisfaction_rating && (
+                                      <div className="flex items-center gap-1 mt-1">
+                                        <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                                        <span className="text-xs">{conv.satisfaction_rating}/5</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {expandedConversation === conv.id ? (
+                                    <ChevronUp className="h-5 w-5 text-gray-400" />
+                                  ) : (
+                                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Expanded Messages */}
+                            {expandedConversation === conv.id && (
+                              <div className="mt-4 border-t pt-4">
+                                <div className="max-h-96 overflow-y-auto space-y-3">
+                                  {conversationMessages[conv.id] ? (
+                                    conversationMessages[conv.id].length > 0 ? (
+                                      conversationMessages[conv.id].map((message, idx) => (
+                                        <div
+                                          key={idx}
+                                          className={`flex ${
+                                            message.role === 'user' ? 'justify-end' : 'justify-start'
+                                          }`}
+                                        >
+                                          <div
+                                            className={`max-w-[70%] p-3 rounded-2xl ${
+                                              message.role === 'user'
+                                                ? 'bg-orange-500 text-white rounded-br-sm'
+                                                : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                                            }`}
+                                            style={message.role === 'user' ? 
+                                              { backgroundColor: primaryColor } : {}}
+                                          >
+                                            <div className="flex items-center gap-1 mb-1">
+                                              {message.role === 'user' ? (
+                                                <User className="h-4 w-4" />
+                                              ) : (
+                                                <Bot className="h-4 w-4" />
+                                              )}
+                                              <span className="text-xs font-medium">
+                                                {message.role === 'user' ? 'Visitor' : 'AGNT'}
+                                              </span>
+                                            </div>
+                                            <p className="text-sm whitespace-pre-wrap">
+                                              {message.content}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="text-center py-4 text-gray-500">
+                                        No messages available
+                                      </div>
+                                    )
+                                  ) : (
+                                    <div className="text-center py-4">
+                                      <Loader2 className="h-6 w-6 animate-spin text-orange-500 mx-auto" />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            )}
-
-            {activeTab === 'knowledge' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Knowledge Base</h3>
-                  <button
-                    onClick={() => setShowAddKnowledge(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all duration-300"
-                    style={{
-                      backgroundColor: branding?.primary_color || '#EA580C'
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Knowledge
-                  </button>
-                </div>
-
-                <div className="bg-white rounded-lg shadow">
-                  {knowledgeBase.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-4 text-lg font-medium text-gray-900">No knowledge base yet</h3>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Add some knowledge entries to help your chatbot answer questions accurately.
-                      </p>
-                      <div className="mt-6">
+            ) : (
+              /* Configuration Tab with Sub-tabs */
+              <div>
+                {/* Sub-tabs */}
+                <div className="border-b border-gray-200 mb-6">
+                  <nav className="-mb-px flex space-x-6">
+                    {[
+                      { key: 'overview', label: 'Overview', icon: Eye },
+                      { key: 'knowledge', label: 'Knowledge Base', icon: Database },
+                      { key: 'test', label: 'Test Chat', icon: MessageSquare },
+                      { key: 'embed', label: 'Embed Code', icon: Code },
+                      { key: 'appearance', label: 'Appearance', icon: Palette }
+                    ].map(tab => {
+                      const Icon = tab.icon;
+                      return (
                         <button
-                          onClick={() => setShowAddKnowledge(true)}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all duration-300"
-                          style={{
-                            backgroundColor: branding?.primary_color || '#EA580C'
-                          }}
+                          key={tab.key}
+                          onClick={() => setConfigSubTab(tab.key)}
+                          className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                            configSubTab === tab.key
+                              ? 'border-orange-500 text-orange-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700'
+                          }`}
+                          style={configSubTab === tab.key ? 
+                            { borderBottomColor: primaryColor, color: primaryColor } : {}}
                         >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Your First Knowledge Entry
+                          <Icon className="h-4 w-4" />
+                          {tab.label}
                         </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+                
+                {/* Sub-tab Content - Keep your existing content for each tab */}
+                {configSubTab === 'overview' && (
+                  /* Your existing Overview content */
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h2 className="text-lg font-semibold mb-4">Chatbot Overview</h2>
+                    {/* Keep your existing overview content */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Chatbot Name
+                        </label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedChatbot.name}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          System Prompt
+                        </label>
+                        <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                          {selectedChatbot.system_prompt}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Model
+                        </label>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {selectedChatbot.chat_model || 'gpt-4-turbo-preview'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Knowledge Items
+                        </label>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {knowledgeItems.length} active items
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Total Conversations
+                        </label>
+                        <p className="mt-1 text-sm text-gray-900">
+                          {selectedChatbot.chatbot_conversations?.[0]?.count || 0}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="divide-y divide-gray-200">
-                      {knowledgeBase.map((item) => (
-                        <div key={item.id} className="p-6">
-                          <h4 className="text-lg font-medium text-gray-900 mb-2">{item.title}</h4>
-                          <p className="text-sm text-gray-600 line-clamp-3">{item.content}</p>
-                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-gray-500">
-                              {item.content_type} • {new Date(item.created_at).toLocaleDateString()}
-                            </span>
+                  </div>
+                )}
+                
+                {configSubTab === 'knowledge' && (
+                  /* Your existing Knowledge Base content */
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-semibold">Knowledge Base</h2>
+                      <button
+                        onClick={() => setShowAddKnowledge(true)}
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Knowledge
+                      </button>
+                    </div>
+                    
+                    {/* Keep your existing knowledge base list */}
+                    <div className="space-y-3">
+                      {knowledgeItems.map(item => (
+                        <div key={item.id} className="border rounded-lg p-4">
+                          <h3 className="font-medium text-gray-900">{item.title}</h3>
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                            {item.content}
+                          </p>
+                          <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                            <span>Type: {item.content_type}</span>
+                            <span>Added: {formatDate(item.created_at)}</span>
                           </div>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {activeTab === 'test' && (
-              <div className="bg-white rounded-lg shadow">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-lg font-medium">Test Your Chatbot</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Chat with your bot to see how it responds
-                  </p>
-                </div>
-                
-                <div className="h-96 overflow-y-auto p-6 space-y-4">
-                  {testMessages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-xs px-4 py-2 rounded-lg ${
-                        msg.role === 'user' 
-                          ? 'bg-blue-500 text-white' 
-                          : msg.error 
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        <p className="text-sm">{msg.content}</p>
-                        {msg.tokensUsed && (
-                          <p className="text-xs mt-1 opacity-75">
-                            {msg.tokensUsed} tokens used
-                          </p>
-                        )}
-                        {msg.relevantKnowledge > 0 && (
-                          <p className="text-xs mt-1 opacity-75">
-                            Used {msg.relevantKnowledge} knowledge items
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {testLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 rounded-lg px-4 py-2 flex items-center space-x-2">
-                        <div className="animate-pulse flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    
+                    {/* Add Knowledge Modal */}
+                    {showAddKnowledge && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                          <h3 className="text-lg font-semibold mb-4">Add Knowledge Entry</h3>
+                          <input
+                            type="text"
+                            placeholder="Title"
+                            value={newKnowledgeTitle}
+                            onChange={(e) => setNewKnowledgeTitle(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-lg mb-3"
+                          />
+                          <textarea
+                            placeholder="Content"
+                            value={newKnowledgeContent}
+                            onChange={(e) => setNewKnowledgeContent(e.target.value)}
+                            rows="4"
+                            className="w-full px-3 py-2 border rounded-lg mb-4"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={addKnowledgeEntry}
+                              className="flex-1 bg-orange-600 text-white py-2 rounded-lg"
+                              style={{ backgroundColor: primaryColor }}
+                            >
+                              Add
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowAddKnowledge(false);
+                                setNewKnowledgeTitle('');
+                                setNewKnowledgeContent('');
+                              }}
+                              className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
-                        <span className="text-xs text-gray-500">Bot is typing...</span>
                       </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="p-6 border-t border-gray-200">
-                  <div className="flex space-x-4">
-                    <input
-                      type="text"
-                      value={testInput}
-                      onChange={(e) => setTestInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && testChatbot()}
-                      placeholder="Type your message..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={testLoading}
-                    />
-                    <button
-                      onClick={testChatbot}
-                      disabled={!testInput.trim() || testLoading}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
+                    )}
                   </div>
-                </div>
-              </div>
-            )}
-            
-            {activeTab === 'embed' && (
-              <div className="space-y-6">
-                {(() => {
-                  const { iframeCode, scriptCode } = generateEmbedCode(selectedChatbot);
-                  return (
-                    <>
-                      <div className="bg-white rounded-lg shadow p-6">
-                        <h3 className="text-lg font-medium mb-4">Iframe Embed</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                          Add this iframe to your website to embed the chatbot.
-                        </p>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <pre className="text-sm text-gray-800 whitespace-pre-wrap">
-                            {iframeCode}
-                          </pre>
-                        </div>
-                        <button
-                          onClick={() => navigator.clipboard.writeText(iframeCode)}
-                          className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Copy to clipboard
-                        </button>
+                )}
+                
+                {configSubTab === 'test' && (
+                  /* Enhanced Test Chat with proper styling */
+                  <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-6">
+                    <h2 className="text-lg font-semibold mb-4">Test Your Chatbot</h2>
+                    
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 h-[500px] flex flex-col">
+                      <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+                        {testMessages.length === 0 ? (
+                          <div className="text-center py-8">
+                            <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                            <p className="text-gray-500">Start a conversation to test your chatbot</p>
+                          </div>
+                        ) : (
+                          testMessages.map((message, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex ${
+                                message.role === 'user' ? 'justify-end' : 'justify-start'
+                              } animate-fade-in`}
+                            >
+                              <div className={`max-w-[70%] ${
+                                message.role === 'user' ? 'order-2' : 'order-1'
+                              }`}>
+                                <div className={`px-4 py-3 rounded-2xl shadow-sm ${
+                                  message.role === 'user'
+                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-br-sm'
+                                    : message.error
+                                    ? 'bg-red-50 text-red-800 border border-red-200'
+                                    : 'bg-white text-gray-900 rounded-bl-sm'
+                                }`}
+                                style={message.role === 'user' && !message.error ? {
+                                  backgroundImage: `linear-gradient(to right, ${primaryColor}, ${primaryColor}dd)`
+                                } : {}}>
+                                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                  {message.relevantKnowledge > 0 && (
+                                    <p className="text-xs mt-2 opacity-70">
+                                      Used {message.relevantKnowledge} knowledge items
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        
+                        {testLoading && (
+                          <div className="flex justify-start">
+                            <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="bg-white rounded-lg shadow p-6">
-                        <h3 className="text-lg font-medium mb-4">JavaScript Widget</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                          Add this script tag to show a floating chat bubble.
-                        </p>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <pre className="text-sm text-gray-800 whitespace-pre-wrap">
-                            {scriptCode}
-                          </pre>
+                      <div className="border-t pt-4">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={testInput}
+                            onChange={(e) => setTestInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && !testLoading && testChatbot()}
+                            placeholder="Type your message..."
+                            disabled={testLoading}
+                            className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                          <button
+                            onClick={testChatbot}
+                            disabled={testLoading || !testInput.trim()}
+                            className="p-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 disabled:opacity-50"
+                            style={{ backgroundColor: primaryColor }}
+                          >
+                            {testLoading ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Send className="h-5 w-5" />
+                            )}
+                          </button>
                         </div>
-                        <button
-                          onClick={() => navigator.clipboard.writeText(scriptCode)}
-                          className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Copy to clipboard
-                        </button>
                       </div>
-                    </>
-                  );
-                })()}
+                    </div>
+                  </div>
+                )}
+                
+                {configSubTab === 'embed' && (
+                  /* Your existing Embed Code content */
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h2 className="text-lg font-semibold mb-4">Embed Code</h2>
+                    {/* Keep your existing embed code content */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Widget Script
+                        </label>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <code className="text-xs">
+                            {`<script src="${window.location.origin}/chat-widget.js"></script>
+<script>
+  initChatWidget({
+    chatbotId: '${selectedChatbot.id}',
+    position: '${appearanceConfig.widget_position}'
+  });
+</script>`}
+                          </code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {configSubTab === 'appearance' && (
+                  /* NEW Appearance Tab - Consolidated from ChatbotConversations */
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Settings Panel */}
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <h2 className="text-lg font-semibold mb-4">Appearance Settings</h2>
+                      
+                      <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
+                        {/* Basic Configuration */}
+                        <div className="space-y-4">
+                          <h3 className="font-medium text-gray-900 flex items-center">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Basic Configuration
+                          </h3>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              AGNT Name
+                            </label>
+                            <input
+                              type="text"
+                              value={appearanceConfig.agnt_name}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                agnt_name: e.target.value
+                              })}
+                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Support Email
+                            </label>
+                            <input
+                              type="email"
+                              value={appearanceConfig.support_email}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                support_email: e.target.value
+                              })}
+                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Widget Appearance */}
+                        <div className="space-y-4 border-t pt-4">
+                          <h3 className="font-medium text-gray-900 flex items-center">
+                            <Palette className="h-4 w-4 mr-2" />
+                            Widget Appearance
+                          </h3>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Widget Size
+                            </label>
+                            <select
+                              value={appearanceConfig.widget_size}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                widget_size: e.target.value
+                              })}
+                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            >
+                              <option value="small">Small</option>
+                              <option value="medium">Medium</option>
+                              <option value="large">Large</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Widget Position
+                            </label>
+                            <select
+                              value={appearanceConfig.widget_position}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                widget_position: e.target.value
+                              })}
+                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            >
+                              <option value="bottom-right">Bottom Right</option>
+                              <option value="bottom-left">Bottom Left</option>
+                              <option value="top-right">Top Right</option>
+                              <option value="top-left">Top Left</option>
+                            </select>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Primary Color
+                              </label>
+                              <input
+                                type="color"
+                                value={appearanceConfig.primary_color}
+                                onChange={(e) => setAppearanceConfig({
+                                  ...appearanceConfig,
+                                  primary_color: e.target.value
+                                })}
+                                className="w-full h-10 rounded cursor-pointer"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Text Color
+                              </label>
+                              <input
+                                type="color"
+                                value={appearanceConfig.text_color}
+                                onChange={(e) => setAppearanceConfig({
+                                  ...appearanceConfig,
+                                  text_color: e.target.value
+                                })}
+                                className="w-full h-10 rounded cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Messages */}
+                        <div className="space-y-4 border-t pt-4">
+                          <h3 className="font-medium text-gray-900 flex items-center">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Messages
+                          </h3>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Welcome Message
+                            </label>
+                            <textarea
+                              value={appearanceConfig.welcome_message}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                welcome_message: e.target.value
+                              })}
+                              rows="2"
+                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Offline Message
+                            </label>
+                            <textarea
+                              value={appearanceConfig.offline_message}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                offline_message: e.target.value
+                              })}
+                              rows="2"
+                              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Features */}
+                        <div className="space-y-3 border-t pt-4">
+                          <h3 className="font-medium text-gray-900">Features</h3>
+                          
+                          <label className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              checked={appearanceConfig.show_typing_indicator}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                show_typing_indicator: e.target.checked
+                              })}
+                              className="h-4 w-4 text-orange-600 rounded"
+                            />
+                            <span className="text-sm text-gray-700">Show typing indicator</span>
+                          </label>
+                          
+                          <label className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              checked={appearanceConfig.enable_emoji_picker}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                enable_emoji_picker: e.target.checked
+                              })}
+                              className="h-4 w-4 text-orange-600 rounded"
+                            />
+                            <span className="text-sm text-gray-700">Enable emoji picker</span>
+                          </label>
+                          
+                          <label className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              checked={appearanceConfig.sound_notifications}
+                              onChange={(e) => setAppearanceConfig({
+                                ...appearanceConfig,
+                                sound_notifications: e.target.checked
+                              })}
+                              className="h-4 w-4 text-orange-600 rounded"
+                            />
+                            <span className="text-sm text-gray-700">Sound notifications</span>
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={saveAppearanceConfig}
+                        disabled={isSavingAppearance}
+                        className="w-full mt-6 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 disabled:opacity-50"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        {isSavingAppearance ? 'Saving...' : 'Save Configuration'}
+                      </button>
+                    </div>
+                    
+                    {/* Live Preview */}
+                    <div className="bg-gray-100 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">Live Preview</h2>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setAppearancePreviewState('closed')}
+                            className={`px-3 py-1 text-sm rounded ${
+                              appearancePreviewState === 'closed' 
+                                ? 'bg-white text-gray-900 shadow' 
+                                : 'text-gray-600 hover:bg-white/50'
+                            }`}
+                          >
+                            Closed
+                          </button>
+                          <button
+                            onClick={() => setAppearancePreviewState('open')}
+                            className={`px-3 py-1 text-sm rounded ${
+                              appearancePreviewState === 'open' 
+                                ? 'bg-white text-gray-900 shadow' 
+                                : 'text-gray-600 hover:bg-white/50'
+                            }`}
+                          >
+                            Open
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Preview Widget */}
+                      <div className="relative bg-white rounded-lg shadow-lg h-[500px] overflow-hidden">
+                        <div className="p-6">
+                          <div className="h-8 bg-gray-200 rounded w-32 mb-4"></div>
+                          <div className="space-y-2">
+                            <div className="h-4 bg-gray-100 rounded w-full"></div>
+                            <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+                          </div>
+                        </div>
+                        
+                        {/* Widget Preview */}
+                        <div className={`absolute ${
+                          appearanceConfig.widget_position === 'bottom-right' ? 'bottom-4 right-4' :
+                          appearanceConfig.widget_position === 'bottom-left' ? 'bottom-4 left-4' :
+                          appearanceConfig.widget_position === 'top-right' ? 'top-4 right-4' :
+                          'top-4 left-4'
+                        }`}>
+                          {appearancePreviewState === 'closed' ? (
+                            <div
+                              className="rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform w-14 h-14 flex items-center justify-center"
+                              style={{ backgroundColor: appearanceConfig.primary_color }}
+                            >
+                              <MessageSquare className="h-6 w-6" style={{ color: appearanceConfig.text_color }} />
+                            </div>
+                          ) : (
+                            <div className="bg-white rounded-lg shadow-2xl w-80 h-96 flex flex-col">
+                              <div
+                                className="p-4 rounded-t-lg flex items-center justify-between"
+                                style={{ backgroundColor: appearanceConfig.primary_color }}
+                              >
+                                <span className="font-semibold" style={{ color: appearanceConfig.text_color }}>
+                                  {appearanceConfig.agnt_name}
+                                </span>
+                                <X className="h-5 w-5 cursor-pointer" style={{ color: appearanceConfig.text_color }} />
+                              </div>
+                              <div className="flex-1 p-4">
+                                <div className="bg-gray-100 rounded-lg p-3">
+                                  <p className="text-sm">{appearanceConfig.welcome_message}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
-
-        {/* Create Chatbot Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
-              <div className="flex items-center justify-between border-b pb-3">
-                <h3 className="text-lg font-medium">Create New Chatbot</h3>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Chatbot Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={chatbotData.name}
-                    onChange={(e) => setChatbotData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Customer Support Bot"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={chatbotData.description}
-                    onChange={(e) => setChatbotData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Describe what this chatbot is for..."
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Welcome Message
-                  </label>
-                  <input
-                    type="text"
-                    value={chatbotData.welcome_message}
-                    onChange={(e) => setChatbotData(prev => ({ ...prev, welcome_message: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Hi! How can I help you today?"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    System Prompt
-                  </label>
-                  <div className="flex space-x-2 mb-2">
-                    <button
-                      onClick={() => setShowPromptWizard(true)}
-                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      Use Prompt Wizard
-                    </button>
-                  </div>
-                  <textarea
-                    value={chatbotData.system_prompt}
-                    onChange={(e) => setChatbotData(prev => ({ ...prev, system_prompt: e.target.value }))}
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="You are a helpful AI assistant..."
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={createChatbot}
-                  disabled={!chatbotData.name.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
-                >
-                  Create Chatbot
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Prompt Wizard Modal */}
-        {showPromptWizard && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-              <div className="flex items-center justify-between border-b pb-3">
-                <h3 className="text-lg font-medium">Prompt Builder Wizard</h3>
-                <button
-                  onClick={() => setShowPromptWizard(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="mt-6">
-                <div className="mb-6">
-                  <div className="flex space-x-4">
-                    {Object.keys(PROMPT_TEMPLATES).map((step) => (
-                      <button
-                        key={step}
-                        onClick={() => setCurrentPromptStep(step)}
-                        className={`px-3 py-2 text-sm rounded ${
-                          currentPromptStep === step
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {step.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {PROMPT_TEMPLATES[currentPromptStep].map((field) => (
-                    <div key={field.key}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.question}
-                      </label>
-                      {field.type === 'select' ? (
-                        <select
-                          value={promptAnswers[field.key] || ''}
-                          onChange={(e) => setPromptAnswers(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">Choose an option...</option>
-                          {field.options.map((option) => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
-                        </select>
-                      ) : field.type === 'checkbox' ? (
-                        <div className="space-y-2">
-                          {field.options.map((option) => (
-                            <label key={option} className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={(promptAnswers[field.key] || []).includes(option)}
-                                onChange={(e) => {
-                                  const current = promptAnswers[field.key] || [];
-                                  const updated = e.target.checked
-                                    ? [...current, option]
-                                    : current.filter(item => item !== option);
-                                  setPromptAnswers(prev => ({ ...prev, [field.key]: updated }));
-                                }}
-                                className="mr-2"
-                              />
-                              {option}
-                            </label>
-                          ))}
-                        </div>
-                      ) : (
-                        <textarea
-                          value={promptAnswers[field.key] || ''}
-                          onChange={(e) => setPromptAnswers(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder={field.placeholder}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowPromptWizard(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handlePromptWizardComplete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md"
-                >
-                  Generate Prompt
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Add Knowledge Modal */}
-        {showAddKnowledge && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
-              <div className="flex items-center justify-between border-b pb-3">
-                <h3 className="text-lg font-medium">Add Knowledge Entry</h3>
-                <button
-                  onClick={() => setShowAddKnowledge(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={newKnowledgeTitle}
-                    onChange={(e) => setNewKnowledgeTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Pricing Information"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Content *
-                  </label>
-                  <textarea
-                    value={newKnowledgeContent}
-                    onChange={(e) => setNewKnowledgeContent(e.target.value)}
-                    rows={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter the knowledge content that will help the chatbot answer questions..."
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowAddKnowledge(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={addKnowledgeEntry}
-                  disabled={!newKnowledgeTitle.trim() || !newKnowledgeContent.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
-                >
-                  Add Knowledge
-                </button>
-              </div>
-            </div>
+          </>
+        ) : (
+          /* No chatbot selected state */
+          <div className="text-center py-12">
+            <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {chatbots.length === 0 ? 'No chatbots yet' : 'Select a chatbot'}
+            </h3>
+            <p className="text-gray-500">
+              {chatbots.length === 0 
+                ? 'Create your first chatbot to get started'
+                : 'Choose a chatbot from the dropdown above'}
+            </p>
           </div>
         )}
       </div>
+      
+      {/* Add animation styles */}
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
-
