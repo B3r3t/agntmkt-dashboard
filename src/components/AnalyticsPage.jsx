@@ -57,7 +57,9 @@ const TopicAnalyticsCard = ({ organization }) => {
 
       if (cached && !cacheError) {
         // Use cached data
-        setAnalysis(cached.analysis_data);
+        setAnalysis(
+          cached?.analysis_data ?? { trending: [], weekly: [], emerging: [] }
+        );
         setLoading(false);
         return;
       }
@@ -71,8 +73,9 @@ const TopicAnalyticsCard = ({ organization }) => {
       });
 
       if (error) throw error;
-
-      setAnalysis(data.analysis);
+      setAnalysis(
+        data?.analysis ?? { trending: [], weekly: [], emerging: [] }
+      );
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
       // Could fallback to basic keyword analysis here if needed
@@ -83,6 +86,7 @@ const TopicAnalyticsCard = ({ organization }) => {
   };
 
   const primaryColor = organization?.branding?.primary_color || '#ea580c';
+  if (!analysis) return null;
 
   return (
     <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-6">
