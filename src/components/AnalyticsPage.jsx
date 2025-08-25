@@ -72,7 +72,11 @@ const TopicAnalyticsCard = ({ organization }) => {
         },
       });
 
+      console.log('Edge function response:', data);
+      console.log('Edge function error:', error);
+
       if (error) throw error;
+      console.log('Setting analysis to:', data?.analysis);
       setAnalysis(
         data?.analysis ?? { trending: [], weekly: [], emerging: [] }
       );
