@@ -25,8 +25,12 @@ import {
 } from 'recharts';
 
 const TopicAnalyticsCard = ({ organization }) => {
-  const defaultAnalysis = { trending: [], weekly: [], emerging: [] };
-  const [analysis, setAnalysis] = useState(defaultAnalysis);
+  if (!organization || !organization.id) return null;
+  const [analysis, setAnalysis] = useState({
+    trending: [],
+    weekly: [],
+    emerging: [],
+  });
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
 
