@@ -71,9 +71,14 @@ const TopicAnalyticsCard = ({ organization }) => {
         },
       });
 
+      console.log('Edge function response:', data);
+      console.log('Edge function error:', error);
+
       if (error) throw error;
-      const { trending = [], weekly = [], emerging = [] } = data?.analysis || {};
-      setAnalysis({ trending, weekly, emerging });
+      console.log('Setting analysis to:', data?.analysis);
+      setAnalysis(
+        data?.analysis ?? { trending: [], weekly: [], emerging: [] }
+      );
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
       // Could fallback to basic keyword analysis here if needed
