@@ -57,10 +57,12 @@ const TopicAnalyticsCard = ({ organization }) => {
         .single();
 
       if (cached && !cacheError) {
-        // Use cached data
-        setAnalysis(
-          cached?.analysis_data ?? { trending: [], weekly: [], emerging: [] }
-        );
+        const {
+          trending = [],
+          weekly = [],
+          emerging = []
+        } = cached?.analysis_data || {};
+        setAnalysis({ trending, weekly, emerging });
         setLoading(false);
         return;
       }
@@ -73,21 +75,24 @@ const TopicAnalyticsCard = ({ organization }) => {
         },
       });
 
+      console.log('Edge function response:', data);
+      console.log('Edge function error:', error);
+
       if (error) throw error;
+      console.log('Setting analysis to:', data?.analysis);
       setAnalysis(
         data?.analysis ?? { trending: [], weekly: [], emerging: [] }
       );
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
       // Could fallback to basic keyword analysis here if needed
-      setAnalysis({ trending: [], weekly: [], emerging: [] });
+      setAnalysis(defaultAnalysis);
     } finally {
       setLoading(false);
     }
   };
 
   const primaryColor = organization?.branding?.primary_color || '#ea580c';
-  if (!analysis) return null;
 
   return (
     <div className="bg-white/95 backdrop-blur-sm rounded-3xl border border-white/80 shadow-lg p-6">
@@ -143,41 +148,43 @@ const TopicAnalyticsCard = ({ organization }) => {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Trending Topics</h3>
             <div className="space-y-2">
-              {analysis.trending.slice(0, 8).map((item, idx) => (
-                <div
-                  key={item.keyword}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-gray-400 w-6">#{idx + 1}</span>
-                    <span className="font-medium text-gray-900 capitalize">{item.keyword}</span>
-                    <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
-                      {item.count} mentions
-                    </span>
-                  </div>
+              {Array.isArray(analysis.trending)
+                ? analysis.trending.slice(0, 8).map((item, idx) => (
+                    <div
+                      key={item.keyword}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-400 w-6">#{idx + 1}</span>
+                        <span className="font-medium text-gray-900 capitalize">{item.keyword}</span>
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                          {item.count} mentions
+                        </span>
+                      </div>
 
-                  <div className="flex items-center gap-2">
-                    {item.trend === 'up' && (
-                      <>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
-                        <span className="text-xs text-green-600 font-medium">+{item.trendPercent}%</span>
-                      </>
-                    )}
-                    {item.trend === 'down' && (
-                      <>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
-                        <span className="text-xs text-red-600 font-medium">{item.trendPercent}%</span>
-                      </>
-                    )}
-                    {item.trend === 'stable' && (
-                      <>
-                        <Minus className="h-4 w-4 text-gray-400" />
-                        <span className="text-xs text-gray-500">Stable</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+                      <div className="flex items-center gap-2">
+                        {item.trend === 'up' && (
+                          <>
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                            <span className="text-xs text-green-600 font-medium">+{item.trendPercent}%</span>
+                          </>
+                        )}
+                        {item.trend === 'down' && (
+                          <>
+                            <TrendingDown className="h-4 w-4 text-red-500" />
+                            <span className="text-xs text-red-600 font-medium">{item.trendPercent}%</span>
+                          </>
+                        )}
+                        {item.trend === 'stable' && (
+                          <>
+                            <Minus className="h-4 w-4 text-gray-400" />
+                            <span className="text-xs text-gray-500">Stable</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                : null}
             </div>
           </div>
 
