@@ -979,20 +979,23 @@ export default function ChatbotBuilder() {
                       
                       <div className="border-t pt-4">
                         <div className="flex gap-2">
-                          <input
-                            type="text"
+                          <textarea
                             value={testInput}
                             onChange={(e) => setTestInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && !testLoading && testChatbot()}
-                            placeholder="Type your message..."
-                            disabled={testLoading}
-                            className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                testChatbot();
+                              }
+                            }}
+                            placeholder="Type your test message..."
+                            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            rows="1"
                           />
                           <button
-                            onClick={testChatbot}
+                            onClick={() => testChatbot()}
                             disabled={testLoading || !testInput.trim()}
-                            className="p-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 disabled:opacity-50"
-                            style={{ backgroundColor: primaryColor }}
+                            className="p-3 rounded-xl bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
                           >
                             {testLoading ? (
                               <Loader2 className="h-5 w-5 animate-spin" />
@@ -1341,7 +1344,75 @@ export default function ChatbotBuilder() {
           </div>
         )}
       </div>
-      
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Create New Chatbot</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+
+              try {
+                const { data, error } = await supabase
+                  .from('chatbots')
+                  .insert({
+                    organization_id: organization.id,
+                    name: formData.get('name'),
+                    description: formData.get('description'),
+                    system_prompt: formData.get('system_prompt'),
+                    welcome_message: formData.get('welcome_message') || 'Hi! How can I help you today?',
+                    chat_model: 'gpt-3.5-turbo',
+                    temperature: 0.7,
+                    max_tokens: 500,
+                    is_active: true,
+                    embedding_model: 'text-embedding-3-small'
+                  })
+                  .select()
+                  .single();
+
+                if (error) throw error;
+
+                setChatbots(prev => [...prev, data]);
+                setSelectedChatbot(data);
+                setShowCreateModal(false);
+              } catch (error) {
+                alert('Error creating chatbot: ' + error.message);
+              }
+            }}>
+              <input
+                name="name"
+                type="text"
+                placeholder="Chatbot Name"
+                required
+                className="w-full mb-3 px-3 py-2 border rounded-lg"
+              />
+              <textarea
+                name="system_prompt"
+                placeholder="You are a helpful assistant..."
+                required
+                rows="3"
+                className="w-full mb-3 px-3 py-2 border rounded-lg"
+              />
+              <input
+                name="welcome_message"
+                type="text"
+                placeholder="Hi! How can I help you today?"
+                className="w-full mb-3 px-3 py-2 border rounded-lg"
+              />
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 bg-orange-600 text-white py-2 rounded">
+                  Create
+                </button>
+                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 bg-gray-200 py-2 rounded">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add animation styles */}
       <style jsx>{`
         @keyframes fade-in {
