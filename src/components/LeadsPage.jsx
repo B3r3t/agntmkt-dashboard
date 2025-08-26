@@ -303,14 +303,6 @@ export default function LeadsPage() {
                                 <span className="text-gray-900">{lead.company}</span>
                               </div>
                             )}
-                            {lead.ai_lead_id && (
-                              <div>
-                                <span className="text-gray-500">Lead ID: </span>
-                                <span className="text-gray-900 text-xs font-mono">
-                                  {lead.ai_lead_id.slice(0, 8)}...
-                                </span>
-                              </div>
-                            )}
                           </div>
 
                           {/* Conversation Link */}
