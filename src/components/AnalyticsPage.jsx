@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
+import logger from '../lib/logger';
 import {
   TrendingUp,
   TrendingDown,
@@ -77,7 +78,7 @@ const TopicAnalyticsCard = ({ organization }) => {
 
       if (error) throw error;
 
-      console.log('Raw AI response:', data?.analysis);
+      logger.log('Raw AI response:', data?.analysis);
 
       // Check if we have valid analysis data
       if (data?.analysis) {
@@ -101,7 +102,7 @@ const TopicAnalyticsCard = ({ organization }) => {
             })),
         };
 
-        console.log('Transformed analysis:', transformedAnalysis);
+        logger.log('Transformed analysis:', transformedAnalysis);
         setAnalysis(transformedAnalysis);
 
         // Also cache the transformed data
