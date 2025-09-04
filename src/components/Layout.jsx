@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
+import logger from '../lib/logger';
 import { Menu, X, ArrowLeft, AlertCircle, Home, Users, TrendingUp, Brain, MessageSquare, Shield, LogOut } from 'lucide-react';
 import BackgroundDecoration from './BackgroundDecoration';
 
@@ -49,7 +50,7 @@ export default function Layout() {
   };
 
   const handleReturnToAdmin = async () => {
-    console.log('Returning to admin...');
+    logger.log('Returning to admin...');
 
     // Clear ALL impersonation data FIRST
     localStorage.removeItem('admin_impersonating');
@@ -134,7 +135,7 @@ export default function Layout() {
               to="/"
               className={({ isActive }) =>
                 `nav-item-indicator relative flex items-center px-3 py-2.5 rounded-lg
-    text-gray-700 hover:bg-gray-100/50 transition-colors
+    text-gray-700 hover:bg-gray-900/5 transition-colors
     ${isActive ? 'active' : ''}`
               }
             >
@@ -153,7 +154,7 @@ export default function Layout() {
               to="/leads"
               className={({ isActive }) =>
                 `nav-item-indicator relative flex items-center px-3 py-2.5 rounded-lg
-    text-gray-700 hover:bg-gray-100/50 transition-colors
+    text-gray-700 hover:bg-gray-900/5 transition-colors
     ${isActive ? 'active' : ''}`
               }
             >
@@ -172,7 +173,7 @@ export default function Layout() {
               to="/analytics"
               className={({ isActive }) =>
                 `nav-item-indicator relative flex items-center px-3 py-2.5 rounded-lg
-    text-gray-700 hover:bg-gray-100/50 transition-colors
+    text-gray-700 hover:bg-gray-900/5 transition-colors
     ${isActive ? 'active' : ''}`
               }
             >
@@ -192,7 +193,7 @@ export default function Layout() {
                 to="/scoring"
                 className={({ isActive }) =>
                   `nav-item-indicator relative flex items-center px-3 py-2.5 rounded-lg
-    text-gray-700 hover:bg-gray-100/50 transition-colors
+    text-gray-700 hover:bg-gray-900/5 transition-colors
     ${isActive ? 'active' : ''}`
                 }
               >
@@ -213,7 +214,7 @@ export default function Layout() {
                 to="/chatbots"
                 className={({ isActive }) =>
                   `nav-item-indicator relative flex items-center px-3 py-2.5 rounded-lg
-    text-gray-700 hover:bg-gray-100/50 transition-colors
+    text-gray-700 hover:bg-gray-900/5 transition-colors
     ${isActive ? 'active' : ''}`
                 }
               >
@@ -234,7 +235,7 @@ export default function Layout() {
                 to="/admin"
                 className={({ isActive }) =>
                   `nav-item-indicator relative flex items-center px-3 py-2.5 rounded-lg
-    text-gray-700 hover:bg-gray-100/50 transition-colors
+    text-gray-700 hover:bg-gray-900/5 transition-colors
     ${isActive ? 'active' : ''}`
                 }
               >
@@ -261,7 +262,7 @@ export default function Layout() {
             )}
             <button
               onClick={handleSignOut}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 rounded-lg transition-colors`}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-900/5 rounded-lg transition-colors`}
             >
               <LogOut className="h-4 w-4 flex-shrink-0" />
               {!sidebarCollapsed && <span className="ml-2">Sign Out</span>}

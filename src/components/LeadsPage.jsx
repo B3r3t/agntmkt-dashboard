@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
+import logger from '../lib/logger';
 import {
   Users,
   Search,
@@ -35,7 +36,7 @@ export default function LeadsPage() {
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      console.log('Fetching leads for organization:', organization.id);
+      logger.log('Fetching leads for organization:', organization.id);
 
       const { data, error } = await supabase
         .from('leads')
@@ -45,7 +46,7 @@ export default function LeadsPage() {
 
       if (error) throw error;
 
-      console.log(`Found ${data?.length || 0} leads for org ${organization.id}`);
+      logger.log(`Found ${data?.length || 0} leads for org ${organization.id}`);
       setLeads(data || []);
     } catch (error) {
       console.error('Error fetching leads:', error);
