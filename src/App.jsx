@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { OrganizationProvider, useOrganization } from './contexts/OrganizationContext';
-import Layout from './components/Layout';
+import Layout from './components/layout/Layout';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import LeadsPage from './components/LeadsPage';

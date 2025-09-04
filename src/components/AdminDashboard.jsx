@@ -2,12 +2,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { 
-  Users, Building2, Activity, Settings, Shield, FileText, 
-  Plus, Search, Filter, Download, Mail, Trash2, Edit2, 
-  LogIn, Palette, ToggleLeft, ToggleRight, Upload, X,
-  Check, ChevronDown, MoreVertical, Image, AlertCircle
+import {
+  Users,
+  Building2,
+  Activity,
+  Settings,
+  Shield,
+  Plus,
+  Search,
+  LogIn,
+  Palette,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
+import FeatureToggle from './admin/FeatureToggle';
+import BrandingModal from './admin/BrandingModal';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -182,371 +191,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const FeatureToggle = ({ enabled, onToggle, feature, orgId, label }) => (
-    <div className="flex flex-col items-center space-y-1">
-      <span className="text-xs text-gray-600">{label}</span>
-      <button
-        onClick={() => onToggle(orgId, feature)}
-        className={`inline-flex items-center ${enabled ? 'text-green-600' : 'text-gray-400'}`}
-        title={`${enabled ? 'Disable' : 'Enable'} ${label}`}
-      >
-        {enabled ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
-      </button>
-    </div>
-  );
-
-  const StatusBadge = ({ status }) => {
-    const colors = {
-      active: 'bg-green-100 text-green-800',
-      trial: 'bg-yellow-100 text-yellow-800', 
-      suspended: 'bg-red-100 text-red-800',
-      churned: 'bg-gray-100 text-gray-800'
-    };
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[status] || colors.active}`}>
-        {status?.charAt(0).toUpperCase() + status?.slice(1) || 'Active'}
-      </span>
-    );
-  };
-
-  // Branding Modal Component
-  const BrandingModal = () => {
-    const [brandingData, setBrandingData] = useState({
-      primary_color: selectedOrgForEdit?.branding?.primary_color || '#3B82F6',
-      secondary_color: selectedOrgForEdit?.branding?.secondary_color || '#10B981',
-      accent_color: selectedOrgForEdit?.branding?.accent_color || '#F59E0B',
-      logo_url: selectedOrgForEdit?.branding?.logo_url || '',
-      custom_css: selectedOrgForEdit?.branding?.custom_css || ''
-    });
-    const [logoFile, setLogoFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [logoPreview, setLogoPreview] = useState(brandingData.logo_url);
-
-    const handleLogoUpload = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      // Validate file type
-      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        alert('Please upload a valid image file (PNG, JPG, SVG, or WebP)');
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
-        return;
-      }
-
-      setLogoFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    };
-
-    const uploadLogoToSupabase = async () => {
-      if (!logoFile) return brandingData.logo_url;
-
-      setUploading(true);
-      try {
-        // Create unique filename
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${selectedOrgForEdit.id}-${Date.now()}.${fileExt}`;
-        const filePath = `logos/${fileName}`;
-
-        // Upload to Supabase Storage
-        const { data, error: uploadError } = await supabase.storage
-          .from('public-assets')
-          .upload(filePath, logoFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('public-assets')
-          .getPublicUrl(filePath);
-
-        return publicUrl;
-      } catch (error) {
-        console.error('Error uploading logo:', error);
-        alert('Error uploading logo. Please try again.');
-        return brandingData.logo_url;
-      } finally {
-        setUploading(false);
-      }
-    };
-
-    const handleSave = async () => {
-      setSaving(true);
-      try {
-        // Upload logo if a new file was selected
-        let logoUrl = brandingData.logo_url;
-        if (logoFile) {
-          logoUrl = await uploadLogoToSupabase();
-        }
-
-        // Save branding data
-        const { error } = await supabase
-          .from('client_branding')
-          .upsert({
-            organization_id: selectedOrgForEdit.id,
-            primary_color: brandingData.primary_color,
-            secondary_color: brandingData.secondary_color,
-            accent_color: brandingData.accent_color,
-            logo_url: logoUrl,
-            custom_css: brandingData.custom_css,
-            updated_at: new Date().toISOString()
-          });
-
-        if (error) throw error;
-
-        setStatus({ type: 'success', message: 'Branding updated successfully!' });
-        setShowBrandingModal(false);
-        await fetchOrganizations();
-      } catch (error) {
-        console.error('Error saving branding:', error);
-        setStatus({ type: 'error', message: 'Error saving branding.' });
-      } finally {
-        setSaving(false);
-      }
-    };
-
-    if (!showBrandingModal || !selectedOrgForEdit) return null;
-
-    return (
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Edit Branding - {selectedOrgForEdit.name}
-              </h2>
-              <button
-                onClick={() => setShowBrandingModal(false)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-6">
-            {/* Logo Upload Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo
-              </label>
-              
-              {/* Logo Preview */}
-              {logoPreview && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                  <img 
-                    src={logoPreview} 
-                    alt="Logo preview" 
-                    className="max-h-32 mx-auto"
-                  />
-                </div>
-              )}
-
-              {/* Upload Options */}
-              <div className="space-y-3">
-                {/* File Upload */}
-                <div>
-                  <label className="block">
-                    <div className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 cursor-pointer">
-                      <Upload className="h-5 w-5 mr-2 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        {logoFile ? logoFile.name : 'Click to upload logo'}
-                      </span>
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                    />
-                  </label>
-                  <p className="mt-1 text-xs text-gray-500">
-                    PNG, JPG, SVG, or WebP up to 5MB
-                  </p>
-                </div>
-
-                {/* OR Divider */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">OR</span>
-                  </div>
-                </div>
-
-                {/* URL Input */}
-                <div>
-                  <input
-                    type="url"
-                    placeholder="Enter logo URL"
-                    value={brandingData.logo_url}
-                    onChange={(e) => {
-                      setBrandingData({ ...brandingData, logo_url: e.target.value });
-                      setLogoPreview(e.target.value);
-                      setLogoFile(null); // Clear file if URL is entered
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Color Pickers */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Brand Colors
-              </label>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Primary</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={brandingData.primary_color}
-                      onChange={(e) => setBrandingData({ ...brandingData, primary_color: e.target.value })}
-                      className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={brandingData.primary_color}
-                      onChange={(e) => setBrandingData({ ...brandingData, primary_color: e.target.value })}
-                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Secondary</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={brandingData.secondary_color}
-                      onChange={(e) => setBrandingData({ ...brandingData, secondary_color: e.target.value })}
-                      className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={brandingData.secondary_color}
-                      onChange={(e) => setBrandingData({ ...brandingData, secondary_color: e.target.value })}
-                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Accent</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={brandingData.accent_color}
-                      onChange={(e) => setBrandingData({ ...brandingData, accent_color: e.target.value })}
-                      className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={brandingData.accent_color}
-                      onChange={(e) => setBrandingData({ ...brandingData, accent_color: e.target.value })}
-                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Custom CSS */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Custom CSS
-              </label>
-              <textarea
-                value={brandingData.custom_css}
-                onChange={(e) => setBrandingData({ ...brandingData, custom_css: e.target.value })}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
-                placeholder=".chat-widget { border-radius: 12px; }
-.chat-header { background: linear-gradient(135deg, #E32390, #C71E7C); }"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Add custom CSS to style the client's dashboard and chatbot widget
-              </p>
-            </div>
-
-            {/* Preview Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preview
-              </label>
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <div className="space-y-3">
-                  {/* Sample Button */}
-                  <button
-                    style={{ backgroundColor: brandingData.primary_color }}
-                    className="px-4 py-2 text-white rounded-md"
-                  >
-                    Primary Button
-                  </button>
-                  
-                  {/* Sample Elements */}
-                  <div className="flex space-x-3">
-                    <div 
-                      style={{ backgroundColor: brandingData.secondary_color }}
-                      className="w-20 h-20 rounded-lg flex items-center justify-center text-white text-xs"
-                    >
-                      Secondary
-                    </div>
-                    <div 
-                      style={{ backgroundColor: brandingData.accent_color }}
-                      className="w-20 h-20 rounded-lg flex items-center justify-center text-white text-xs"
-                    >
-                      Accent
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-            <button
-              onClick={() => setShowBrandingModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving || uploading}
-              className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : uploading ? 'Uploading...' : 'Save Changes'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const filteredOrgs = organizations.filter(org => {
-    const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          org.industry?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      org.industry?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || org.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -791,8 +439,14 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Branding Modal */}
-      <BrandingModal />
+        {/* Branding Modal */}
+        <BrandingModal
+          isOpen={showBrandingModal}
+          org={selectedOrgForEdit}
+          onClose={() => setShowBrandingModal(false)}
+          fetchOrganizations={fetchOrganizations}
+          setStatus={setStatus}
+        />
     </div>
   );
 }
