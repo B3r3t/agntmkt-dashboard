@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import StatusMessage from './StatusMessage';
+import * as logger from '../lib/logger';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -33,6 +34,7 @@ export default function LoginPage() {
           if (error) throw error;
         }
       } catch (error) {
+        logger.error('Authentication error:', error);
         setStatus({ type: 'error', message: error.message });
       } finally {
         setLoading(false);

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
+import * as logger from '../lib/logger';
 
 const OrganizationContext = createContext({});
 
@@ -43,7 +44,7 @@ export function OrganizationProvider({ children }) {
       const originalUserId = localStorage.getItem('admin_original_user');
       const adminImpersonating = localStorage.getItem('admin_impersonating');
       
-      console.log('Checking impersonation:', { tempOrgId, originalUserId, adminImpersonating, currentUserId: user.id });
+      logger.info('Checking impersonation:', { tempOrgId, originalUserId, adminImpersonating, currentUserId: user.id });
       
       // Clear state first if not impersonating
       if (!tempOrgId || !adminImpersonating) {
@@ -52,7 +53,7 @@ export function OrganizationProvider({ children }) {
       
       // If admin is impersonating, load the impersonated organization
       if (tempOrgId && originalUserId === user.id && adminImpersonating) {
-        console.log('Loading impersonated organization:', tempOrgId);
+        logger.info('Loading impersonated organization:', tempOrgId);
         setIsImpersonating(true);
         
         // Get the impersonated organization with ALL related data
@@ -63,7 +64,7 @@ export function OrganizationProvider({ children }) {
           .single();
 
         if (orgError || !orgData) {
-          console.error('Failed to load impersonated org:', orgError);
+          logger.error('Failed to load impersonated org:', orgError);
           // Clear impersonation if org not found
           localStorage.removeItem('temp_organization_id');
           localStorage.removeItem('admin_impersonating');
@@ -96,7 +97,7 @@ export function OrganizationProvider({ children }) {
           });
         }
 
-        console.log('Impersonated org loaded:', orgData.name);
+        logger.info('Impersonated org loaded:', orgData.name);
         setOrganization(orgData);
         setBranding(brandingData || {
           primary_color: '#3B82F6',
@@ -118,16 +119,16 @@ export function OrganizationProvider({ children }) {
         
         if (originalRole?.role === 'admin') {
           setUserRole('admin'); // Keep admin role when impersonating
-          console.log('Maintaining admin role during impersonation');
+          logger.info('Maintaining admin role during impersonation');
         } else {
           // Shouldn't happen, but handle gracefully
           setUserRole('client_admin');
-          console.warn('Original user is not admin, setting to client_admin');
+          logger.warn('Original user is not admin, setting to client_admin');
         }
         
       } else {
         // Normal user flow - not impersonating
-        console.log('Loading normal user organization');
+        logger.info('Loading normal user organization');
         setIsImpersonating(false);
         
         // Get user's role and organization
@@ -138,13 +139,13 @@ export function OrganizationProvider({ children }) {
           .single();
 
         if (roleError) {
-          console.error('Error fetching user role:', roleError);
+          logger.error('Error fetching user role:', roleError);
           setError('Failed to fetch user role');
           setLoading(false);
           return;
         }
 
-        console.log('User role data:', userRoleData);
+        logger.info('User role data:', userRoleData);
         setUserRole(userRoleData?.role || 'user');
 
         // If user has an organization, load it
@@ -156,10 +157,10 @@ export function OrganizationProvider({ children }) {
             .single();
 
           if (orgError) {
-            console.error('Error fetching organization:', orgError);
+            logger.error('Error fetching organization:', orgError);
             setError('Failed to fetch organization');
           } else {
-            console.log('Organization loaded:', orgData.name);
+            logger.info('Organization loaded:', orgData.name);
             setOrganization(orgData);
 
             // Fetch branding
@@ -195,7 +196,7 @@ export function OrganizationProvider({ children }) {
           // User without organization
           if (userRoleData?.role === 'admin') {
             // Admin users don't need an organization (they manage all)
-            console.log('Admin user without organization');
+            logger.info('Admin user without organization');
             setOrganization(null);
             setBranding({
               primary_color: '#3B82F6',
@@ -219,7 +220,7 @@ export function OrganizationProvider({ children }) {
       }
 
     } catch (err) {
-      console.error('Error fetching organization:', err);
+      logger.error('Error fetching organization:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -238,7 +239,7 @@ export function OrganizationProvider({ children }) {
     
     // If we're navigating FROM /admin TO / with impersonation data, reload
     if (location.pathname === '/' && tempOrgId && adminImpersonating && !isImpersonating) {
-      console.log('Detected impersonation start, refreshing context...');
+      logger.info('Detected impersonation start, refreshing context...');
       fetchUserOrganization();
     }
     
@@ -246,7 +247,7 @@ export function OrganizationProvider({ children }) {
     if (location.pathname === '/admin') {
       if (!tempOrgId && !adminImpersonating && isImpersonating) {
         // We were impersonating but now the data is cleared
-        console.log('Detected return to admin, refreshing context...');
+        logger.info('Detected return to admin, refreshing context...');
         fetchUserOrganization();
       }
     }

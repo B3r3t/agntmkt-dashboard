@@ -12,6 +12,7 @@ import AdminDashboard from './components/AdminDashboard';
 import ScoringConfigPage from './components/ScoringConfigPage';
 import OnboardingWizard from './components/OnboardingWizard';
 import NoOrganization from './components/NoOrganization';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Protected Admin Route Component
 function ProtectedAdminRoute() {
@@ -113,53 +114,57 @@ export default function App() {
     <Router>
       {session ? (
         <OrganizationProvider>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              {/* Main Dashboard - always accessible */}
-              <Route index element={<Dashboard />} />
-              
-              {/* Core Features - always accessible */}
-              <Route path="leads" element={<LeadsPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              
-              {/* Feature-gated routes */}
-              <Route
-                path="chatbots"
-                element={
-                  <ProtectedFeatureRoute feature="chatbots">
-                    <ChatbotBuilder />
-                  </ProtectedFeatureRoute>
-                }
-              />
-              
-              <Route 
-                path="scoring" 
-                element={
-                  <ProtectedFeatureRoute feature="lead_scoring">
-                    <ScoringConfigPage />
-                  </ProtectedFeatureRoute>
-                } 
-              />
-              
-              {/* Onboarding - accessible to all authenticated users */}
-              <Route path="onboarding" element={<OnboardingWizard />} />
-              
-              {/* Admin Dashboard - only for system admins */}
-              <Route path="admin" element={<ProtectedAdminRoute />} />
-              
-              {/* Error/Special Pages */}
-              <Route path="no-organization" element={<NoOrganization />} />
-              
-              {/* Catch all - redirect to home */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                {/* Main Dashboard - always accessible */}
+                <Route index element={<Dashboard />} />
+
+                {/* Core Features - always accessible */}
+                <Route path="leads" element={<LeadsPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
+
+                {/* Feature-gated routes */}
+                <Route
+                  path="chatbots"
+                  element={
+                    <ProtectedFeatureRoute feature="chatbots">
+                      <ChatbotBuilder />
+                    </ProtectedFeatureRoute>
+                  }
+                />
+
+                <Route
+                  path="scoring"
+                  element={
+                    <ProtectedFeatureRoute feature="lead_scoring">
+                      <ScoringConfigPage />
+                    </ProtectedFeatureRoute>
+                  }
+                />
+
+                {/* Onboarding - accessible to all authenticated users */}
+                <Route path="onboarding" element={<OnboardingWizard />} />
+
+                {/* Admin Dashboard - only for system admins */}
+                <Route path="admin" element={<ProtectedAdminRoute />} />
+
+                {/* Error/Special Pages */}
+                <Route path="no-organization" element={<NoOrganization />} />
+
+                {/* Catch all - redirect to home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </ErrorBoundary>
         </OrganizationProvider>
       ) : (
         // Unauthenticated routes
-        <Routes>
-          <Route path="/*" element={<LoginPage />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/*" element={<LoginPage />} />
+          </Routes>
+        </ErrorBoundary>
       )}
     </Router>
   );
