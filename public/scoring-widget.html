@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Lead Scoring Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f9fafb;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+        
+        /* Form Section */
+        .form-section {
+            flex: 1;
+            min-width: 300px;
+            max-width: 450px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #111827;
+        }
+        
+        .quick-buttons {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .quick-btn {
+            padding: 4px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-hot { background: #fee2e2; color: #dc2626; }
+        .btn-hot:hover { background: #fecaca; }
+        .btn-warm { background: #fef3c7; color: #d97706; }
+        .btn-warm:hover { background: #fed7aa; }
+        .btn-cold { background: #dbeafe; color: #2563eb; }
+        .btn-cold:hover { background: #bfdbfe; }
+        .btn-clear { background: #f3f4f6; color: #374151; }
+        .btn-clear:hover { background: #e5e7eb; }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .form-field {
+            margin-bottom: 12px;
+        }
+        
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #f97316;
+            box-shadow: 0 0 0 3px rgba(251,146,60,0.1);
+        }
+        
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, #ea580c, #f97316);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(234,88,12,0.3);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Results Section */
+        .results-section {
+            flex: 1.5;
+            min-width: 300px;
+        }
+        
+        /* Profile Card */
+        .profile-card {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .avatar {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .profile-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .profile-company {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .profile-details {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 8px;
+        }
+        
+        .score-badge {
+            font-size: 36px;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: white;
+            color: #1e293b;
+        }
+        
+        .score-hot { background: #dc2626; color: white; }
+        .score-warm { background: #f59e0b; color: white; }
+        .score-cold { background: #3b82f6; color: white; }
+        
+        /* Result Cards */
+        .result-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .result-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 16px;
+        }
+        
+        .financial-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .financial-item {
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .financial-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .financial-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #111827;
+        }
+        
+        .qualified {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 8px;
+            background: #dcfce7;
+            color: #16a34a;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .success-box {
+            margin-top: 16px;
+            padding: 12px;
+            background: #dcfce7;
+            border-radius: 8px;
+            color: #166534;
+            font-size: 14px;
+        }
+        
+        .strengths-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .strength-item {
+            padding: 10px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1e40af;
+        }
+        
+        .analysis-box {
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+        
+        .analysis-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        .analysis-content {
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .next-steps {
+            background: linear-gradient(to bottom right, #fef3c7, #fed7aa);
+            border: 1px solid #fbbf24;
+        }
+        
+        .next-steps p {
+            color: #78350f;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .form-section, .results-section { max-width: 100%; }
+            .form-row { grid-template-columns: 1fr; }
+            .financial-grid { grid-template-columns: 1fr; }
+            .profile-card { flex-wrap: wrap; text-align: center; }
+            .score-badge { width: 100%; margin-top: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Form Section -->
+        <div class="form-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Test Lead Scoring</h2>
+                    <div class="quick-buttons">
+                        <button class="quick-btn btn-hot" onclick="fillHot()">🔥 Hot</button>
+                        <button class="quick-btn btn-warm" onclick="fillWarm()">🟡 Warm</button>
+                        <button class="quick-btn btn-cold" onclick="fillCold()">❄️ Cold</button>
+                        <button class="quick-btn btn-clear" onclick="clearForm()">Clear</button>
+                    </div>
+                </div>
+                
+                <form id="leadForm">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>First Name *</label>
+                            <input type="text" id="first_name" required>
+                        </div>
+                        <div class="form-field">
+                            <label>Last Name *</label>
+                            <input type="text" id="last_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label>Email *</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label>Phone *</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label>Company</label>
+                        <input type="text" id="company">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Liquid Capital *</label>
+                            <input type="text" id="liquid_capital" required>
+                        </div>
+                        <div class="form-field">
+                            <label>Net Worth</label>
+                            <input type="text" id="net_worth">
+                        </div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label>Timeline *</label>
+                        <select id="time_frame" required>
+                            <option value="">Select...</option>
+                            <option value="Immediate">Immediate</option>
+                            <option value="3-6 months">3-6 months</option>
+                            <option value="6-12 months">6-12 months</option>
+                            <option value="12+ months">12+ months</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>State</label>
+                            <input type="text" id="state" maxlength="2">
+                        </div>
+                        <div class="form-field">
+                            <label>Zip Code</label>
+                            <input type="text" id="zip_code" maxlength="5">
+                        </div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label>Message / Background</label>
+                        <textarea id="message"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        <span id="btnText">⚡ Test Lead Scoring</span>
+                        <span class="spinner" id="spinner" style="display:none"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="results-section" id="results">
+            <div class="card empty-state">
+                <div class="empty-icon">👥</div>
+                <h3>No Results Yet</h3>
+                <p>Fill out the form and click "Test Lead Scoring" to see results</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quick fill functions
+        function fillHot() {
+            document.getElementById('first_name').value = 'Shana';
+            document.getElementById('last_name').value = 'Krisan';
+            document.getElementById('email').value = 'shana@goldfishfranchise.com';
+            document.getElementById('phone').value = '9493102317';
+            document.getElementById('company').value = 'Goldfish Swim School Franchising, LLC';
+            document.getElementById('liquid_capital').value = '300000';
+            document.getElementById('net_worth').value = '800000';
+            document.getElementById('time_frame').value = '3-6 months';
+            document.getElementById('state').value = 'CA';
+            document.getElementById('zip_code').value = '91344';
+            document.getElementById('message').value = 'Chief Marketing Officer at Goldfish Swim School Franchising, LLC';
+        }
+        
+        function fillWarm() {
+            document.getElementById('first_name').value = 'Mike';
+            document.getElementById('last_name').value = 'Chen';
+            document.getElementById('email').value = 'mike.chen@techcorp.com';
+            document.getElementById('phone').value = '555-234-5678';
+            document.getElementById('company').value = 'Regional Healthcare Solutions';
+            document.getElementById('liquid_capital').value = '180000';
+            document.getElementById('net_worth').value = '450000';
+            document.getElementById('time_frame').value = '6-12 months';
+            document.getElementById('state').value = 'CA';
+            document.getElementById('zip_code').value = '94102';
+            document.getElementById('message').value = 'VP of Operations at regional healthcare company, interested in franchise ownership.';
+        }
+        
+        function fillCold() {
+            document.getElementById('first_name').value = 'Jennifer';
+            document.getElementById('last_name').value = 'Smith';
+            document.getElementById('email').value = 'jsmith@email.com';
+            document.getElementById('phone').value = '555-345-6789';
+            document.getElementById('company').value = '';
+            document.getElementById('liquid_capital').value = '75000';
+            document.getElementById('net_worth').value = '200000';
+            document.getElementById('time_frame').value = '12+ months';
+            document.getElementById('state').value = 'FL';
+            document.getElementById('zip_code').value = '33101';
+            document.getElementById('message').value = 'Just exploring franchise opportunities.';
+        }
+        
+        function clearForm() {
+            document.getElementById('leadForm').reset();
+        }
+        
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0
+            }).format(value);
+        }
+        
+        // Handle form submission
+        document.getElementById('leadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const submitBtn = e.target.querySelector('.submit-btn');
+            
+            // Show loading
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.style.display = 'inline-block';
+            
+            // Get form data
+            const formData = {
+                first_name: document.getElementById('first_name').value,
+                last_name: document.getElementById('last_name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                company: document.getElementById('company').value,
+                liquid_capital: document.getElementById('liquid_capital').value,
+                net_worth: document.getElementById('net_worth').value || '0',
+                time_frame: document.getElementById('time_frame').value,
+                state: document.getElementById('state').value,
+                zip_code: document.getElementById('zip_code').value,
+                message: document.getElementById('message').value
+            };
+            
+            try {
+                const response = await fetch('https://brndmkt.app.n8n.cloud/webhook/dashboard-client-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        brand: 'AGNTMKT',
+                        source: 'embed-widget',
+                        lead_data: formData
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to score lead');
+                
+                const data = await response.json();
+                const result = Array.isArray(data) ? data[0] : (data.lead || data);
+                
+                displayResults(result, formData);
+                
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> Unable to score lead. Please try again.
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
+        });
+        
+        function displayResults(data, formData) {
+            const score = data.score || 0;
+            const scoreClass = score >= 80 ? 'hot' : score >= 60 ? 'warm' : 'cold';
+            
+            let html = '';
+            
+            // Profile Card
+            html += `
+                <div class="profile-card">
+                    <div class="avatar">
+                        ${formData.first_name[0]}${formData.last_name[0]}
+                    </div>
+                    <div class="profile-info">
+                        <div class="profile-name">${formData.first_name} ${formData.last_name}</div>
+                        <div class="profile-company">${formData.company || 'Individual Investor'}</div>
+                        <div class="profile-details">
+                            <span>📧 ${formData.email}</span>
+                            <span>📍 ${formData.state || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="score-badge score-${scoreClass}">
+                        ${score}
+                        <div style="font-size: 10px; font-weight: normal; margin-top: 2px">
+                            ${scoreClass === 'hot' ? 'Hot' : scoreClass === 'warm' ? 'Warm' : 'Cold'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Financial Qualification
+            html += `
+                <div class="result-card">
+                    <h3>💰 Financial Qualification</h3>
+                    <div class="financial-grid">
+                        <div class="financial-item">
+                            <div class="financial-label">Liquid Capital</div>
+                            <div class="financial-value">${formatCurrency(formData.liquid_capital)}</div>
+                            ${parseInt(formData.liquid_capital) >= 200000 ? '<div class="qualified">✓ Qualified</div>' : ''}
+                        </div>
+                        <div class="financial-item">
+                            <div class="financial-label">Net Worth</div>
+                            <div class="financial-value">${formatCurrency(formData.net_worth)}</div>
+                            ${parseInt(formData.net_worth) >= 500000 ? '<div class="qualified">✓ Qualified</div>' : ''}
+                        </div>
+                    </div>
+                    ${parseInt(formData.liquid_capital) >= 200000 && parseInt(formData.net_worth) >= 500000 ? 
+                        '<div class="success-box">✅ Both liquid capital and net worth requirements are met.</div>' : ''}
+                </div>
+            `;
+            
+            // AI Analysis
+            if (data.ai_analysis || data.key_strengths || data.ai_reasoning) {
+                html += `<div class="result-card"><h3>🤖 AI Analysis</h3>`;
+                
+                if (data.key_strengths && Array.isArray(data.key_strengths)) {
+                    html += `
+                        <div style="margin-bottom: 16px">
+                            <div style="font-weight: 600; margin-bottom: 12px">Key Strengths</div>
+                            <div class="strengths-grid">
+                                ${data.key_strengths.map(s => `<div class="strength-item">✓ ${s}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (data.ai_reasoning) {
+                    html += `
+                        <div class="analysis-box">
+                            <div class="analysis-title">Detailed Analysis</div>
+                            <div class="analysis-content">${data.ai_reasoning}</div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+            }
+            
+            // Next Steps
+            if (data.next_steps) {
+                html += `
+                    <div class="result-card next-steps">
+                        <h3>🎯 Recommended Next Steps</h3>
+                        <p>${data.next_steps}</p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('results').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
