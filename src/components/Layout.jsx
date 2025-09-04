@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
+import logger from '../lib/logger';
 import { Menu, X, ArrowLeft, AlertCircle, Home, Users, TrendingUp, Brain, MessageSquare, Shield, LogOut } from 'lucide-react';
 import BackgroundDecoration from './BackgroundDecoration';
 
@@ -49,7 +50,7 @@ export default function Layout() {
   };
 
   const handleReturnToAdmin = async () => {
-    console.log('Returning to admin...');
+    logger.log('Returning to admin...');
 
     // Clear ALL impersonation data FIRST
     localStorage.removeItem('admin_impersonating');
