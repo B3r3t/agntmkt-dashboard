@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Users, TrendingUp, MessageSquare, Target, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import logger from '../lib/logger';
 
 export default function Dashboard() {
   const { organization, loading: orgLoading, userRole, isImpersonating } = useOrganization();
@@ -63,7 +64,7 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      console.log('Fetching dashboard data for org:', organization.id);
+      logger.log('Fetching dashboard data for org:', organization.id);
 
       // Fetch all stats in parallel
       const [
@@ -112,7 +113,7 @@ export default function Dashboard() {
       });
 
       setRecentLeads(recentLeadsData || []);
-      console.log('Dashboard data loaded:', { totalLeads, todayLeads, recentLeads: recentLeadsData?.length });
+      logger.log('Dashboard data loaded:', { totalLeads, todayLeads, recentLeads: recentLeadsData?.length });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

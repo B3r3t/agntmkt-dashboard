@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import logger from '../lib/logger';
 import { 
   Users, Building2, Activity, Settings, Shield, FileText, 
   Plus, Search, Filter, Download, Mail, Trash2, Edit2, 
@@ -81,7 +82,7 @@ export default function AdminDashboard() {
 
       if (orgsError) throw orgsError;
 
-      console.log('Found organizations:', orgsData?.length);
+      logger.log('Found organizations:', orgsData?.length);
 
       // Process the data to include counts and features
       const processedOrgs = await Promise.all(orgsData.map(async (org) => {
@@ -112,7 +113,7 @@ export default function AdminDashboard() {
         };
       }));
 
-      console.log('Processed organizations:', processedOrgs);
+      logger.log('Processed organizations:', processedOrgs);
       setOrganizations(processedOrgs);
     } catch (error) {
       console.error('Error fetching organizations:', error);
@@ -164,7 +165,7 @@ export default function AdminDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
   
-      console.log('Starting impersonation for:', org.name, org.id);
+      logger.log('Starting impersonation for:', org.name, org.id);
   
       // Store admin session info
       localStorage.setItem('admin_impersonating', org.id);

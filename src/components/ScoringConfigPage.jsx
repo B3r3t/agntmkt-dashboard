@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { supabase } from '../lib/supabase';
+import logger from '../lib/logger';
 /* eslint-disable-next-line no-unused-vars */
 import {
   Users,
@@ -164,9 +165,9 @@ const EnhancedScoringConfig = () => {
         };
 
         setWeights(mergedWeights);
-        console.log('Loaded existing scoring config:', mergedWeights);
+        logger.log('Loaded existing scoring config:', mergedWeights);
       } else {
-        console.log('No existing config found, using defaults');
+        logger.log('No existing config found, using defaults');
         // Use default weights based on organization
         if (organization.name === 'MassageLuXe') {
           setWeights({
@@ -329,7 +330,7 @@ const EnhancedScoringConfig = () => {
         });
         
         if (webhookResponse.ok) {
-          console.log('N8N webhook triggered successfully');
+          logger.log('N8N webhook triggered successfully');
         } else {
           console.warn('N8N webhook failed, but config saved to database');
         }
@@ -339,7 +340,7 @@ const EnhancedScoringConfig = () => {
 
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
-      console.log('Configuration saved successfully');
+      logger.log('Configuration saved successfully');
 
     } catch (error) {
       console.error('Error saving configuration:', error);
