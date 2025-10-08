@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useOrganization } from '../contexts/OrganizationContext';
+import FunctionBuilder from './FunctionBuilder';
 import { 
   MessageSquare, ChevronDown, ChevronUp, Phone, MapPin,
   Building, Briefcase, Calendar, Star, Clock, User, Bot,
@@ -13,7 +14,7 @@ export default function ChatbotBuilder() {
   const { organization, branding } = useOrganization();
   
   // Main navigation state - now includes conversations as main tab
-  const [mainTab, setMainTab] = useState('conversations');
+  const [mainTab, setMainTab] = useState('conversations'); // conversations | functions | configuration
   const [configSubTab, setConfigSubTab] = useState('overview');
   
   // Existing chatbot states
@@ -534,10 +535,20 @@ export default function ChatbotBuilder() {
                       ? 'border-orange-500 text-orange-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
-                  style={mainTab === 'conversations' ? 
+                  style={mainTab === 'conversations' ?
                     { borderBottomColor: primaryColor, color: primaryColor } : {}}
                 >
                   Conversations
+                </button>
+                <button
+                  onClick={() => setMainTab('functions')}
+                  className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+                    mainTab === 'functions'
+                      ? 'bg-white text-orange-600 border-t-2 border-orange-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Functions
                 </button>
                 <button
                   onClick={() => setMainTab('configuration')}
@@ -555,7 +566,7 @@ export default function ChatbotBuilder() {
             </div>
             
             {/* Tab Content */}
-            {mainTab === 'conversations' ? (
+            {mainTab === 'conversations' && (
               /* Conversations Tab Content */
               <div className="space-y-6">
                 {/* Stats Cards */}
@@ -761,7 +772,16 @@ export default function ChatbotBuilder() {
                   </div>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {mainTab === 'functions' && selectedChatbot && (
+              <FunctionBuilder
+                chatbotId={selectedChatbot.id}
+                onClose={() => setMainTab('conversations')}
+              />
+            )}
+
+            {mainTab === 'configuration' && (
               /* Configuration Tab with Sub-tabs */
               <div>
                 {/* Sub-tabs */}
