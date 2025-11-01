@@ -1336,7 +1336,9 @@ export default function ChatbotBuilder() {
                               </div>
                               <div className="flex-1 p-4">
                                 <div className="bg-gray-100 rounded-lg p-3">
-                                  <p className="text-sm">{appearanceConfig.welcome_message}</p>
+                                  <p className="text-sm leading-relaxed whitespace-pre-line break-words">
+                                    {appearanceConfig.welcome_message}
+                                  </p>
                                 </div>
                               </div>
                             </div>
