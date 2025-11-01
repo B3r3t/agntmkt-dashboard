@@ -76,6 +76,37 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const allowedInputTypes = new Set(['text', 'search', 'password', 'tel']);
+
+    const ensureSpaceAllowed = (event) => {
+      if (event.key !== ' ' || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target;
+      const isTextArea = target instanceof HTMLTextAreaElement;
+      const isTextInput =
+        target instanceof HTMLInputElement &&
+        (allowedInputTypes.has(target.type) || target.type === '');
+      const isEditable = Boolean(target?.isContentEditable);
+
+      if (!isTextArea && !isTextInput && !isEditable) {
+        return;
+      }
+
+      // Stop propagation so no other listeners can block the default browser
+      // behaviour that inserts a space character.
+      event.stopPropagation();
+    };
+
+    window.addEventListener('keydown', ensureSpaceAllowed, true);
+
+    return () => {
+      window.removeEventListener('keydown', ensureSpaceAllowed, true);
+    };
+  }, []);
+
+  useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
